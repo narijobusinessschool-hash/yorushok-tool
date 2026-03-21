@@ -16,6 +16,7 @@ const CURRENT_USER_KEY = "yorushokuCurrentUser";
 const memberMenuItems = [
   { label: "新規添削", href: "/dashboard/new" },
   { label: "添削履歴", href: "/dashboard" },
+  { label: "アクセス分析", href: "/dashboard/access" },
   { label: "マイページ", href: "/mypage" },
 ];
 
