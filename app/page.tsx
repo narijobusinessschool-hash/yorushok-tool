@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { logError, logEvent } from "@/lib/logger";
 
 const SAVED_LOGIN_KEY = "yorushokuSavedLogin";
 const CURRENT_USER_KEY = "yorushokuCurrentUser";
@@ -39,27 +40,32 @@ export default function Home() {
         .single();
 
       if (dbError || !data) {
+        logError("login_failed", "メールアドレスまたはパスワードが違います", { email: email.trim() });
         setError("メールアドレスまたはパスワードが違います。");
         return;
       }
 
       if (data.status === "停止中") {
+        logError("login_blocked", "停止中アカウントのログイン試行", { user_id: data.id });
         setError("このアカウントは現在利用停止中です。管理者にお問い合わせください。");
         return;
       }
 
       if (data.status === "解約") {
+        logError("login_blocked", "解約済みアカウントのログイン試行", { user_id: data.id });
         setError("このアカウントは解約済みです。管理者にお問い合わせください。");
         return;
       }
 
       if (!data.usage_permission) {
+        logError("login_blocked", "利用制限アカウントのログイン試行", { user_id: data.id });
         setError("現在このアカウントの利用が制限されています。管理者にお問い合わせください。");
         return;
       }
 
       const userData = { id: data.id, name: data.name, email: data.email, role: data.role };
       localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userData));
+      logEvent("login_success", data.id, { role: data.role });
 
       // ミドルウェア用Cookieをセット（24時間）
       document.cookie = `yorushoku_session=${encodeURIComponent(JSON.stringify({ role: data.role }))}; path=/; max-age=86400`;
@@ -76,7 +82,8 @@ export default function Home() {
         const hasProfile = localStorage.getItem("yorushokuPersonaProfile");
         router.push(hasProfile ? "/dashboard" : "/onboarding");
       }
-    } catch {
+    } catch (err) {
+      logError("login_exception", "ログイン処理中に予期せぬエラー", { message: String(err) });
       setError("ログイン処理中にエラーが発生しました。");
     } finally {
       setLoading(false);

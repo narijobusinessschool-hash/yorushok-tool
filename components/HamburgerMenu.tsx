@@ -25,6 +25,7 @@ const adminMenuItems = [
   { label: "管理画面TOP", href: "/admin" },
   { label: "会員一覧", href: "/admin/members" },
   { label: "学習モード", href: "/admin/admin/learning" },
+  { label: "統計・ログ", href: "/admin/logs" },
   { label: "マイページ", href: "/mypage" },
 ];
 

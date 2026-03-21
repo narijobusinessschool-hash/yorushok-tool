@@ -960,6 +960,11 @@ ${successLine}
       persistResult(nextResult);
     } catch (err) {
       console.error("AI添削エラー:", err);
+      const raw = localStorage.getItem("yorushokuCurrentUser");
+      const uid = raw ? JSON.parse(raw).id : undefined;
+      void import("@/lib/logger").then(({ logError }) =>
+        logError("analyze_failed", "AI添削でエラーが発生", { message: String(err) }, uid)
+      );
       setSavedNotice("AI添削でエラーが発生しました。もう一度お試しください。");
       setTimeout(() => setSavedNotice(""), 3000);
     } finally {

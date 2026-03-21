@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { logError, logEvent } from "@/lib/logger";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -307,9 +308,17 @@ ${outputFormat}`;
 
     const parsed = JSON.parse(content);
 
+    logEvent("analyze_success", undefined, {
+      category,
+      industry,
+      bodyScore: parsed.bodyScore,
+      titleScore: parsed.titleScore,
+    });
+
     return NextResponse.json(parsed);
   } catch (error) {
     console.error("OpenAI API error:", error);
+    logError("api_generate_error", "添削APIでエラーが発生", { message: String(error) });
 
     return NextResponse.json(
       { error: "API接続中にエラーが発生しました。" },
