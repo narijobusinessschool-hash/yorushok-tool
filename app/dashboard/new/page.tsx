@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 type Category = "写メ日記" | "オキニトーク" | "SNS";
 type OkiniPurpose = "初来店の促し" | "再来店の促し";
@@ -330,11 +331,23 @@ function getProfileGoal(profile: SavedProfile | null): ShameNikkiGoal | null {
   return "本指名増";
 }
 
-function saveDraftResult(item: SavedDraftResult) {
-  const raw = localStorage.getItem("yorushokuDraftResults");
-  const existing: SavedDraftResult[] = raw ? JSON.parse(raw) : [];
-  const next = [item, ...existing].slice(0, 50);
-  localStorage.setItem("yorushokuDraftResults", JSON.stringify(next));
+async function saveDraftResult(item: SavedDraftResult, memberId: string) {
+  await supabase.from("draft_results").insert({
+    id: item.id,
+    member_id: memberId,
+    created_at: item.createdAt,
+    category: item.category,
+    title: item.title,
+    original_text: item.originalText,
+    improved_text: item.improvedText,
+    title_score: item.titleScore ?? null,
+    body_score: item.bodyScore,
+    profile_type_name: item.profileTypeName,
+    industry: item.industry,
+    prefecture: item.prefecture,
+    purpose: item.purpose ?? "",
+    status: item.status,
+  });
 }
 
 function getScoreBand(score: number) {
@@ -450,25 +463,102 @@ export default function NewPostPage() {
   const [approvedPatterns, setApprovedPatterns] = useState<ApprovedPatternMap>({});
 
   useEffect(() => {
-    const savedProfile = localStorage.getItem("yorushokuPersonaProfile");
-    const rawDrafts = localStorage.getItem("yorushokuDraftResults");
-    const rawOutcomes = localStorage.getItem("yorushokuDraftOutcomes");
-    const rawApproved = localStorage.getItem("yorushokuApprovedPatterns");
+    async function loadAll() {
+      const rawUser = localStorage.getItem("yorushokuCurrentUser");
+      const currentUser = rawUser ? JSON.parse(rawUser) : null;
 
-    if (savedProfile) {
-      const parsed = JSON.parse(savedProfile) as SavedProfile;
-      setProfile(parsed);
+      // プロフィール読み込み
+      if (currentUser) {
+        const { data: profileData } = await supabase
+          .from("member_profiles")
+          .select("profile_data")
+          .eq("member_id", currentUser.id)
+          .single();
 
-      const autoGoal = getProfileGoal(parsed);
-      const autoEmotion = getProfileEmotion(parsed);
+        if (profileData?.profile_data) {
+          const parsed = profileData.profile_data as SavedProfile;
+          setProfile(parsed);
+          const autoGoal = getProfileGoal(parsed);
+          const autoEmotion = getProfileEmotion(parsed);
+          if (autoGoal) setShameNikkiGoal(autoGoal);
+          if (autoEmotion) setEmotionTarget(autoEmotion);
+        } else {
+          const saved = localStorage.getItem("yorushokuPersonaProfile");
+          if (saved) {
+            const parsed = JSON.parse(saved) as SavedProfile;
+            setProfile(parsed);
+            const autoGoal = getProfileGoal(parsed);
+            const autoEmotion = getProfileEmotion(parsed);
+            if (autoGoal) setShameNikkiGoal(autoGoal);
+            if (autoEmotion) setEmotionTarget(autoEmotion);
+          }
+        }
 
-      if (autoGoal) setShameNikkiGoal(autoGoal);
-      if (autoEmotion) setEmotionTarget(autoEmotion);
+        // 添削履歴読み込み（Supabase優先・localStorage移行）
+        const { data: supabaseDrafts } = await supabase
+          .from("draft_results")
+          .select("*")
+          .eq("member_id", currentUser.id)
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        if (supabaseDrafts && supabaseDrafts.length > 0) {
+          const mapped: SavedDraftResult[] = supabaseDrafts.map((d) => ({
+            id: d.id,
+            createdAt: d.created_at,
+            category: d.category as Category,
+            title: d.title,
+            originalText: d.original_text,
+            improvedText: d.improved_text,
+            titleScore: d.title_score ?? undefined,
+            bodyScore: d.body_score,
+            profileTypeName: d.profile_type_name,
+            industry: d.industry,
+            prefecture: d.prefecture,
+            purpose: d.purpose,
+            status: d.status as "下書き" | "使用済み",
+          }));
+          setDrafts(mapped);
+
+          // 成果記録も読み込み
+          const { data: supabaseOutcomes } = await supabase
+            .from("draft_outcomes")
+            .select("*")
+            .eq("member_id", currentUser.id);
+          if (supabaseOutcomes) {
+            const map: OutcomeMap = {};
+            supabaseOutcomes.forEach((o) => {
+              map[o.draft_id] = {
+                used: o.used,
+                reservation: o.reservation,
+                nomination: o.nomination,
+                visit: o.visit,
+                memo: o.memo,
+                updatedAt: o.updated_at,
+              };
+            });
+            setOutcomes(map);
+          }
+        } else {
+          // localStorageから移行
+          const rawDrafts = localStorage.getItem("yorushokuDraftResults");
+          if (rawDrafts) {
+            const localDrafts: SavedDraftResult[] = JSON.parse(rawDrafts);
+            setDrafts(localDrafts);
+            for (const draft of localDrafts) {
+              await saveDraftResult(draft, currentUser.id);
+            }
+          }
+          const rawOutcomes = localStorage.getItem("yorushokuDraftOutcomes");
+          if (rawOutcomes) setOutcomes(JSON.parse(rawOutcomes));
+        }
+      }
+
+      const rawApproved = localStorage.getItem("yorushokuApprovedPatterns");
+      if (rawApproved) setApprovedPatterns(JSON.parse(rawApproved));
     }
 
-    if (rawDrafts) setDrafts(JSON.parse(rawDrafts));
-    if (rawOutcomes) setOutcomes(JSON.parse(rawOutcomes));
-    if (rawApproved) setApprovedPatterns(JSON.parse(rawApproved));
+    loadAll();
   }, []);
 
   const canAnalyze = useMemo(() => {
@@ -857,7 +947,7 @@ ${successLine}
     ];
   }
 
-  function persistResult(currentResult: AnalysisResult) {
+  async function persistResult(currentResult: AnalysisResult) {
     const item: SavedDraftResult = {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
@@ -874,7 +964,12 @@ ${successLine}
       status: "下書き",
     };
 
-    saveDraftResult(item);
+    const rawUser = localStorage.getItem("yorushokuCurrentUser");
+    if (rawUser) {
+      const currentUser = JSON.parse(rawUser);
+      await saveDraftResult(item, currentUser.id);
+    }
+
     const nextDrafts = [item, ...drafts].slice(0, 50);
     setDrafts(nextDrafts);
 
@@ -957,7 +1052,7 @@ ${successLine}
       };
 
       setResult(nextResult);
-      persistResult(nextResult);
+      await persistResult(nextResult);
     } catch (err) {
       console.error("AI添削エラー:", err);
       const raw = localStorage.getItem("yorushokuCurrentUser");

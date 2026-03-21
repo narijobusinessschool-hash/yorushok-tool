@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 type SavedDraftResult = {
   id: string;
@@ -35,15 +36,54 @@ export default function ResultsPage() {
   const [savedId, setSavedId] = useState("");
 
   useEffect(() => {
-    const rawItems = localStorage.getItem("yorushokuDraftResults");
-    const rawOutcomes = localStorage.getItem("yorushokuDraftOutcomes");
+    async function loadAll() {
+      const rawUser = localStorage.getItem("yorushokuCurrentUser");
+      if (!rawUser) return;
+      const currentUser = JSON.parse(rawUser);
 
-    if (rawItems) {
-      setItems(JSON.parse(rawItems));
+      const { data: supabaseDrafts } = await supabase
+        .from("draft_results")
+        .select("*")
+        .eq("member_id", currentUser.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (supabaseDrafts && supabaseDrafts.length > 0) {
+        setItems(supabaseDrafts.map((d) => ({
+          id: d.id,
+          createdAt: d.created_at,
+          category: d.category,
+          title: d.title,
+          originalText: d.original_text,
+          improvedText: d.improved_text,
+          titleScore: d.title_score ?? undefined,
+          bodyScore: d.body_score,
+          profileTypeName: d.profile_type_name,
+          industry: d.industry,
+          prefecture: d.prefecture,
+          purpose: d.purpose,
+          status: d.status,
+        })));
+
+        const { data: supabaseOutcomes } = await supabase
+          .from("draft_outcomes")
+          .select("*")
+          .eq("member_id", currentUser.id);
+        if (supabaseOutcomes) {
+          const map: OutcomeMap = {};
+          supabaseOutcomes.forEach((o) => {
+            map[o.draft_id] = { used: o.used, reservation: o.reservation, nomination: o.nomination, visit: o.visit, memo: o.memo, updatedAt: o.updated_at };
+          });
+          setOutcomes(map);
+        }
+      } else {
+        const rawItems = localStorage.getItem("yorushokuDraftResults");
+        const rawOutcomes = localStorage.getItem("yorushokuDraftOutcomes");
+        if (rawItems) setItems(JSON.parse(rawItems));
+        if (rawOutcomes) setOutcomes(JSON.parse(rawOutcomes));
+      }
     }
-    if (rawOutcomes) {
-      setOutcomes(JSON.parse(rawOutcomes));
-    }
+    loadAll();
   }, []);
 
   const stats = useMemo(() => {
@@ -61,7 +101,7 @@ export default function ResultsPage() {
     };
   }, [outcomes]);
 
-  function updateOutcome(
+  async function updateOutcome(
     id: string,
     key: keyof DraftOutcome,
     value: string
@@ -80,7 +120,23 @@ export default function ResultsPage() {
     };
 
     setOutcomes(next);
-    localStorage.setItem("yorushokuDraftOutcomes", JSON.stringify(next));
+
+    const rawUser = localStorage.getItem("yorushokuCurrentUser");
+    if (rawUser) {
+      const currentUser = JSON.parse(rawUser);
+      const o = next[id];
+      await supabase.from("draft_outcomes").upsert({
+        draft_id: id,
+        member_id: currentUser.id,
+        used: o.used,
+        reservation: o.reservation,
+        nomination: o.nomination,
+        visit: o.visit,
+        memo: o.memo,
+        updated_at: o.updatedAt,
+      });
+    }
+
     setSavedId(id);
     setTimeout(() => setSavedId(""), 1400);
   }

@@ -55,10 +55,36 @@ export default function MyPage() {
   const [pwLoading, setPwLoading] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("yorushokuPersonaProfile");
-    if (saved) {
-      setProfile(JSON.parse(saved));
+    async function loadProfile() {
+      const raw = localStorage.getItem("yorushokuCurrentUser");
+      if (!raw) return;
+      const currentUser = JSON.parse(raw);
+
+      const { data } = await supabase
+        .from("member_profiles")
+        .select("profile_data")
+        .eq("member_id", currentUser.id)
+        .single();
+
+      if (data?.profile_data) {
+        setProfile(data.profile_data as SavedProfile);
+        localStorage.setItem("yorushokuPersonaProfile", JSON.stringify(data.profile_data));
+        return;
+      }
+
+      // Supabaseにない場合はlocalStorageから移行
+      const saved = localStorage.getItem("yorushokuPersonaProfile");
+      if (saved) {
+        const parsed = JSON.parse(saved) as SavedProfile;
+        setProfile(parsed);
+        await supabase.from("member_profiles").upsert({
+          member_id: currentUser.id,
+          profile_data: parsed,
+          updated_at: new Date().toISOString(),
+        });
+      }
     }
+    loadProfile();
   }, []);
 
   async function handlePasswordChange(e: React.FormEvent<HTMLFormElement>) {

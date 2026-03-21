@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 const prefectureOptions = [
   "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
@@ -451,7 +452,7 @@ export default function OnboardingPage() {
     selectedDecisionPoints,
   ]);
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     const payload = {
       basic: {
         character: selectedCharacter,
@@ -489,6 +490,17 @@ export default function OnboardingPage() {
     };
 
     localStorage.setItem("yorushokuPersonaProfile", JSON.stringify(payload));
+
+    const raw = localStorage.getItem("yorushokuCurrentUser");
+    if (raw) {
+      const currentUser = JSON.parse(raw);
+      await supabase.from("member_profiles").upsert({
+        member_id: currentUser.id,
+        profile_data: payload,
+        updated_at: new Date().toISOString(),
+      });
+    }
+
     router.push("/mypage");
   };
 
