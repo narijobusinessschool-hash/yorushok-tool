@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+
+const SAVED_LOGIN_KEY = "yorushokuSavedLogin";
 
 type Member = {
   id: string;
@@ -30,8 +32,19 @@ export default function Home() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(SAVED_LOGIN_KEY);
+    if (saved) {
+      const { email: savedEmail, password: savedPassword } = JSON.parse(saved);
+      setEmail(savedEmail ?? "");
+      setPassword(savedPassword ?? "");
+      setRememberMe(true);
+    }
+  }, []);
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -70,6 +83,12 @@ export default function Home() {
         CURRENT_USER_KEY,
         JSON.stringify({ id: matched.id, name: matched.name, email: matched.email, role: matched.role })
       );
+
+      if (rememberMe) {
+        localStorage.setItem(SAVED_LOGIN_KEY, JSON.stringify({ email: email.trim(), password }));
+      } else {
+        localStorage.removeItem(SAVED_LOGIN_KEY);
+      }
 
       if (matched.role === "管理者") {
         router.push("/admin");
@@ -178,6 +197,19 @@ export default function Home() {
                   required
                   className="h-12 w-full rounded-2xl border border-[#d9d3df] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
                 />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-[#d9d3df] accent-[#a3476b]"
+                />
+                <label htmlFor="rememberMe" className="text-sm text-[#5b5864]">
+                  ログイン情報を保存する
+                </label>
               </div>
 
               {error && (
