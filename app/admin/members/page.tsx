@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+const MEMBERS_KEY = "yorushokuMembers";
 
 type MemberStatus = "契約中" | "停止中" | "解約";
 type MemberRole = "管理者" | "一般会員";
@@ -65,15 +67,15 @@ const initialMembers: Member[] = [
     note: "ソープ / 大阪府",
   },
   {
-    id: "M-0004",
-    name: "管理者アカウント",
-    email: "admin@example.com",
-    password: "Admin123!",
+    id: "M-0001",
+    name: "管理者",
+    email: "narijo.businessschool@gmail.com",
+    password: "T7LfGJtR",
     role: "管理者",
     status: "契約中",
     plan: "管理者",
     joinedAt: "2026-01-01T09:00:00",
-    lastLoginAt: "2026-03-21T11:05:00",
+    lastLoginAt: "2026-03-22T00:00:00",
     deviceStatus: "登録済み",
     usagePermission: true,
     note: "システム管理者",
@@ -178,7 +180,15 @@ function UsageToggle({
 }
 
 export default function AdminMembersPage() {
-  const [members, setMembers] = useState<Member[]>(initialMembers);
+  const [members, setMembers] = useState<Member[]>(() => {
+    if (typeof window === "undefined") return initialMembers;
+    const raw = localStorage.getItem(MEMBERS_KEY);
+    return raw ? JSON.parse(raw) : initialMembers;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
+  }, [members]);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<"すべて" | MemberStatus>("すべて");
 

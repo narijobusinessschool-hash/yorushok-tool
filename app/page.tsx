@@ -1,4 +1,89 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+type Member = {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  role: "管理者" | "一般会員";
+  status: "契約中" | "停止中" | "解約";
+  usagePermission: boolean;
+};
+
+const MEMBERS_KEY = "yorushokuMembers";
+const CURRENT_USER_KEY = "yorushokuCurrentUser";
+
+const fallbackAdmin: Member = {
+  id: "M-0001",
+  name: "管理者",
+  email: "narijo.businessschool@gmail.com",
+  password: "T7LfGJtR",
+  role: "管理者",
+  status: "契約中",
+  usagePermission: true,
+};
+
 export default function Home() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const raw = localStorage.getItem(MEMBERS_KEY);
+      const members: Member[] = raw ? JSON.parse(raw) : [fallbackAdmin];
+
+      const matched = members.find(
+        (m) => m.email === email.trim() && m.password === password
+      );
+
+      if (!matched) {
+        setError("メールアドレスまたはパスワードが違います。");
+        return;
+      }
+
+      if (matched.status === "停止中") {
+        setError("このアカウントは現在利用停止中です。管理者にお問い合わせください。");
+        return;
+      }
+
+      if (matched.status === "解約") {
+        setError("このアカウントは解約済みです。管理者にお問い合わせください。");
+        return;
+      }
+
+      if (!matched.usagePermission) {
+        setError("現在このアカウントの利用が制限されています。管理者にお問い合わせください。");
+        return;
+      }
+
+      localStorage.setItem(
+        CURRENT_USER_KEY,
+        JSON.stringify({ id: matched.id, name: matched.name, email: matched.email, role: matched.role })
+      );
+
+      if (matched.role === "管理者") {
+        router.push("/admin");
+      } else {
+        const hasProfile = localStorage.getItem("yorushokuPersonaProfile");
+        router.push(hasProfile ? "/dashboard" : "/onboarding");
+      }
+    } catch {
+      setError("ログイン処理中にエラーが発生しました。");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#f6f4f7] text-[#1f1f23]">
       <div className="mx-auto grid min-h-screen max-w-7xl grid-cols-1 lg:grid-cols-2">
@@ -54,12 +139,11 @@ export default function Home() {
                 承認済み会員専用ページ
               </h2>
               <p className="mt-3 text-sm leading-6 text-[#6b6773]">
-                招待または承認された会員のみご利用いただけます。
-                ログイン後、文章添削・履歴確認・成果記録が可能です。
+                管理者から発行されたアカウントでログインしてください。
               </p>
             </div>
 
-            <form className="mt-8 space-y-5">
+            <form onSubmit={handleLogin} className="mt-8 space-y-5">
               <div>
                 <label
                   htmlFor="email"
@@ -70,7 +154,10 @@ export default function Home() {
                 <input
                   id="email"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="example@gmail.com"
+                  required
                   className="h-12 w-full rounded-2xl border border-[#d9d3df] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
                 />
               </div>
@@ -85,34 +172,28 @@ export default function Home() {
                 <input
                   id="password"
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  required
                   className="h-12 w-full rounded-2xl border border-[#d9d3df] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
                 />
               </div>
 
-              <a
-                href="/onboarding"
-                className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[#a3476b] text-sm font-semibold text-white transition hover:bg-[#8c3c5b]"
-              >
-                ログインする
-              </a>
-            </form>
-
-            <div className="mt-6 space-y-3">
-              <a
-                href="/onboarding"
-                className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-[#d8d3dc] bg-white text-sm font-medium text-[#2c2933] transition hover:bg-[#faf8fb]"
-              >
-                招待を受けた方はこちら
-              </a>
+              {error && (
+                <p className="rounded-xl bg-[#fdf0f4] px-4 py-3 text-sm text-[#b03060]">
+                  {error}
+                </p>
+              )}
 
               <button
-                type="button"
-                className="w-full text-center text-sm font-medium text-[#7a2e4d] transition hover:opacity-80"
+                type="submit"
+                disabled={loading}
+                className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[#a3476b] text-sm font-semibold text-white transition hover:bg-[#8c3c5b] disabled:cursor-not-allowed disabled:bg-[#d2afbe]"
               >
-                パスワードを忘れた場合
+                {loading ? "確認中…" : "ログインする"}
               </button>
-            </div>
+            </form>
 
             <div className="mt-8 rounded-2xl bg-[#f8f4f7] p-4">
               <p className="text-sm font-semibold text-[#2e2a3b]">
