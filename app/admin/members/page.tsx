@@ -411,22 +411,24 @@ export default function AdminMembersPage() {
 
             <div>
               <label className="mb-2 block text-sm font-medium text-[#2c2933]">
-                パスワード（自動生成）
+                パスワード（自動生成 または 直接入力）
               </label>
               <div className="flex gap-2">
                 <input
                   value={generatedPassword}
-                  readOnly
-                  className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm text-[#2c2933] outline-none"
+                  onChange={(e) => setGeneratedPassword(e.target.value)}
+                  placeholder="パスワードを入力 または 再生成"
+                  className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm text-[#2c2933] outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
                 />
                 <button
                   type="button"
                   onClick={regeneratePassword}
                   className="inline-flex h-12 shrink-0 items-center justify-center rounded-2xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933] transition hover:bg-[#faf8fb]"
                 >
-                  再生成
+                  自動生成
                 </button>
               </div>
+              <p className="mt-1 text-xs text-[#8a8492]">そのまま登録するか、直接書き換えることもできます</p>
             </div>
 
             <div>
