@@ -887,10 +887,14 @@ ${successLine}
     try {
       const rawExamples = localStorage.getItem("yorushokuLearningExamples");
       const rawConfig = localStorage.getItem("yorushokuLearningConfig");
+      const rawGoodTitles = localStorage.getItem("yorushokuGoodTitles");
+      const rawGoodBodies = localStorage.getItem("yorushokuGoodBodies");
       const learningExamples = rawExamples ? JSON.parse(rawExamples) : [];
       const learningConfig = rawConfig
         ? JSON.parse(rawConfig)
         : { ngWords: [], influenceRules: [] };
+      const goodTitles = rawGoodTitles ? JSON.parse(rawGoodTitles) : [];
+      const goodBodies = rawGoodBodies ? JSON.parse(rawGoodBodies) : [];
 
       const diagnosisInfo = profile
         ? {
@@ -925,6 +929,8 @@ ${successLine}
             category === "オキニトーク" ? softSalesTone : undefined,
           diagnosisInfo,
           learningExamples,
+          goodTitles,
+          goodBodies,
           ngWords: learningConfig.ngWords,
           influenceRules: learningConfig.influenceRules,
         }),

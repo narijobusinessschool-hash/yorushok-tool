@@ -80,6 +80,10 @@ function getBadgeLabel(type: PatternItem["type"]) {
   return "スコア帯";
 }
 
+const GOOD_TITLES_KEY = "yorushokuGoodTitles";
+const GOOD_BODIES_KEY = "yorushokuGoodBodies";
+const NG_WORDS_KEY = "yorushokuLearningConfig";
+
 export default function AdminPage() {
   const [drafts, setDrafts] = useState<SavedDraftResult[]>([]);
   const [outcomes, setOutcomes] = useState<OutcomeMap>({});
@@ -87,6 +91,15 @@ export default function AdminPage() {
     {}
   );
   const [savedMessage, setSavedMessage] = useState("");
+
+  // 学習データ
+  const [goodTitles, setGoodTitles] = useState<string[]>([]);
+  const [goodBodies, setGoodBodies] = useState<string[]>([]);
+  const [ngWords, setNgWords] = useState<string[]>([]);
+  const [titleInput, setTitleInput] = useState("");
+  const [bodyInput, setBodyInput] = useState("");
+  const [ngWordInput, setNgWordInput] = useState("");
+  const [learnTab, setLearnTab] = useState<"titles" | "bodies" | "ng">("titles");
 
   useEffect(() => {
     const rawDrafts = localStorage.getItem("yorushokuDraftResults");
@@ -96,7 +109,73 @@ export default function AdminPage() {
     if (rawDrafts) setDrafts(JSON.parse(rawDrafts));
     if (rawOutcomes) setOutcomes(JSON.parse(rawOutcomes));
     if (rawApproved) setApprovedPatterns(JSON.parse(rawApproved));
+
+    const rawTitles = localStorage.getItem(GOOD_TITLES_KEY);
+    const rawBodies = localStorage.getItem(GOOD_BODIES_KEY);
+    const rawConfig = localStorage.getItem(NG_WORDS_KEY);
+
+    if (rawTitles) setGoodTitles(JSON.parse(rawTitles));
+    if (rawBodies) setGoodBodies(JSON.parse(rawBodies));
+    if (rawConfig) {
+      const config = JSON.parse(rawConfig);
+      if (Array.isArray(config.ngWords)) setNgWords(config.ngWords);
+    }
   }, []);
+
+  function addGoodTitle() {
+    const v = titleInput.trim();
+    if (!v) return;
+    const next = [v, ...goodTitles].slice(0, 200);
+    setGoodTitles(next);
+    localStorage.setItem(GOOD_TITLES_KEY, JSON.stringify(next));
+    setTitleInput("");
+    setSavedMessage("良いタイトルを追加しました");
+    setTimeout(() => setSavedMessage(""), 1500);
+  }
+
+  function removeGoodTitle(index: number) {
+    const next = goodTitles.filter((_, i) => i !== index);
+    setGoodTitles(next);
+    localStorage.setItem(GOOD_TITLES_KEY, JSON.stringify(next));
+  }
+
+  function addGoodBody() {
+    const v = bodyInput.trim();
+    if (!v) return;
+    const next = [v, ...goodBodies].slice(0, 100);
+    setGoodBodies(next);
+    localStorage.setItem(GOOD_BODIES_KEY, JSON.stringify(next));
+    setBodyInput("");
+    setSavedMessage("良い本文を追加しました");
+    setTimeout(() => setSavedMessage(""), 1500);
+  }
+
+  function removeGoodBody(index: number) {
+    const next = goodBodies.filter((_, i) => i !== index);
+    setGoodBodies(next);
+    localStorage.setItem(GOOD_BODIES_KEY, JSON.stringify(next));
+  }
+
+  function addNgWord() {
+    const v = ngWordInput.trim();
+    if (!v || ngWords.includes(v)) return;
+    const next = [...ngWords, v];
+    setNgWords(next);
+    const raw = localStorage.getItem(NG_WORDS_KEY);
+    const config = raw ? JSON.parse(raw) : { ngWords: [], influenceRules: [] };
+    localStorage.setItem(NG_WORDS_KEY, JSON.stringify({ ...config, ngWords: next }));
+    setNgWordInput("");
+    setSavedMessage("NGワードを追加しました");
+    setTimeout(() => setSavedMessage(""), 1500);
+  }
+
+  function removeNgWord(word: string) {
+    const next = ngWords.filter((w) => w !== word);
+    setNgWords(next);
+    const raw = localStorage.getItem(NG_WORDS_KEY);
+    const config = raw ? JSON.parse(raw) : { ngWords: [], influenceRules: [] };
+    localStorage.setItem(NG_WORDS_KEY, JSON.stringify({ ...config, ngWords: next }));
+  }
 
   const analysis = useMemo(() => {
     const merged = drafts
@@ -439,6 +518,132 @@ export default function AdminPage() {
           </div>
 
           <aside className="space-y-6 xl:col-span-4">
+            {/* 学習データ管理 */}
+            <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef]">
+              <p className="text-sm font-medium text-[#a3476b]">AI学習データ管理</p>
+              <p className="mt-1 text-xs text-[#7b7682]">追加したデータは即座に添削AIに反映されます</p>
+
+              {/* タブ */}
+              <div className="mt-4 flex gap-1 rounded-2xl bg-[#f3f0f6] p-1">
+                {(["titles", "bodies", "ng"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setLearnTab(tab)}
+                    className={`flex-1 rounded-xl py-2 text-xs font-semibold transition ${
+                      learnTab === tab
+                        ? "bg-white text-[#a3476b] shadow-sm"
+                        : "text-[#66616d] hover:text-[#2c2933]"
+                    }`}
+                  >
+                    {tab === "titles" ? `良いタイトル（${goodTitles.length}）` : tab === "bodies" ? `良い本文（${goodBodies.length}）` : `NGワード（${ngWords.length}）`}
+                  </button>
+                ))}
+              </div>
+
+              {/* 良いタイトル */}
+              {learnTab === "titles" && (
+                <div className="mt-4 space-y-3">
+                  <div className="flex gap-2">
+                    <input
+                      value={titleInput}
+                      onChange={(e) => setTitleInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addGoodTitle())}
+                      placeholder="予約に繋がったタイトルを入力"
+                      className="h-11 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none focus:border-[#a3476b]"
+                    />
+                    <button
+                      type="button"
+                      onClick={addGoodTitle}
+                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-2xl bg-[#a3476b] px-4 text-sm font-semibold text-white"
+                    >
+                      追加
+                    </button>
+                  </div>
+                  <div className="max-h-64 space-y-2 overflow-y-auto">
+                    {goodTitles.length > 0 ? (
+                      goodTitles.map((t, i) => (
+                        <div key={i} className="flex items-start justify-between gap-2 rounded-2xl border border-[#ece7ef] bg-[#fcfbfd] px-4 py-3">
+                          <span className="text-sm text-[#2c2933]">{t}</span>
+                          <button type="button" onClick={() => removeGoodTitle(i)} className="shrink-0 text-xs text-[#7a2e4d]">削除</button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-[#66616d]">まだ追加されていません</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 良い本文 */}
+              {learnTab === "bodies" && (
+                <div className="mt-4 space-y-3">
+                  <textarea
+                    value={bodyInput}
+                    onChange={(e) => setBodyInput(e.target.value)}
+                    placeholder="予約・指名に繋がった本文を貼り付け"
+                    className="min-h-[120px] w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 py-3 text-sm outline-none focus:border-[#a3476b]"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={addGoodBody}
+                      className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#a3476b] px-5 text-sm font-semibold text-white"
+                    >
+                      追加
+                    </button>
+                  </div>
+                  <div className="max-h-64 space-y-2 overflow-y-auto">
+                    {goodBodies.length > 0 ? (
+                      goodBodies.map((b, i) => (
+                        <div key={i} className="rounded-2xl border border-[#ece7ef] bg-[#fcfbfd] px-4 py-3">
+                          <p className="whitespace-pre-wrap text-sm leading-6 text-[#2c2933] line-clamp-4">{b}</p>
+                          <button type="button" onClick={() => removeGoodBody(i)} className="mt-2 text-xs text-[#7a2e4d]">削除</button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-[#66616d]">まだ追加されていません</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* NGワード */}
+              {learnTab === "ng" && (
+                <div className="mt-4 space-y-3">
+                  <div className="flex gap-2">
+                    <input
+                      value={ngWordInput}
+                      onChange={(e) => setNgWordInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addNgWord())}
+                      placeholder="例：激安、今すぐ、無料"
+                      className="h-11 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none focus:border-[#a3476b]"
+                    />
+                    <button
+                      type="button"
+                      onClick={addNgWord}
+                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-2xl bg-[#a3476b] px-4 text-sm font-semibold text-white"
+                    >
+                      追加
+                    </button>
+                  </div>
+                  <p className="text-xs text-[#7b7682]">日記削除リスクのある表現を登録。AIが添削時に使わなくなります。</p>
+                  <div className="flex flex-wrap gap-2">
+                    {ngWords.length > 0 ? (
+                      ngWords.map((word) => (
+                        <span key={word} className="inline-flex items-center gap-1.5 rounded-full bg-[#fdf0f4] px-3 py-1.5 text-xs font-medium text-[#7a2e4d]">
+                          {word}
+                          <button type="button" onClick={() => removeNgWord(word)} className="text-[#a3476b] hover:text-[#7a2e4d]">×</button>
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-xs text-[#66616d]">まだNGワードがありません</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div
               id="system-status"
               className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef]"

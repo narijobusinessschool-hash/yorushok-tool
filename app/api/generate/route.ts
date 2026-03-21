@@ -36,6 +36,8 @@ type RequestBody = {
   softSalesTone?: boolean;
   diagnosisInfo?: DiagnosisInfo;
   learningExamples?: LearningExample[];
+  goodTitles?: string[];
+  goodBodies?: string[];
   ngWords?: string[];
   influenceRules?: string[];
 };
@@ -72,6 +74,8 @@ export async function POST(req: Request) {
     const softSalesTone = body.softSalesTone ?? true;
     const diagnosisInfo = body.diagnosisInfo ?? {};
     const learningExamples = body.learningExamples ?? [];
+    const goodTitles = body.goodTitles ?? [];
+    const goodBodies = body.goodBodies ?? [];
     const ngWords = body.ngWords ?? [];
     const influenceRules = body.influenceRules ?? [];
 
@@ -90,6 +94,19 @@ export async function POST(req: Request) {
               (item, index) =>
                 `【参考例${index + 1}】\nタイトル: ${item.title}\n本文: ${item.body}\nメモ: ${item.note ?? ""}`
             )
+            .join("\n\n")
+        : "なし";
+
+    const goodTitlesText =
+      goodTitles.length > 0
+        ? goodTitles.map((t, i) => `${i + 1}. ${t}`).join("\n")
+        : "なし";
+
+    const goodBodiesText =
+      goodBodies.length > 0
+        ? goodBodies
+            .slice(0, 5)
+            .map((b, i) => `【本文例${i + 1}】\n${b}`)
             .join("\n\n")
         : "なし";
 
@@ -253,6 +270,12 @@ ${
 
 ## 管理者が登録した参考例（雰囲気・強みを学習して反映すること）
 ${examplesText}
+
+## 実績ある良いタイトル（このトーン・構造・引きを参考にすること）
+${goodTitlesText}
+
+## 実績ある良い本文（この流れ・言葉選び・余韻を参考にすること）
+${goodBodiesText}
 
 ## 使用禁止ワード
 ${ngWordsText}
