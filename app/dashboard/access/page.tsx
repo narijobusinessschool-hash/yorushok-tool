@@ -33,18 +33,8 @@ type AccessAnalysis = {
   created_at?: string;
 };
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
-
-const SUGGESTED_QUESTIONS = [
-  "先月よりアクセスが下がった原因は何ですか？",
-  "一番効果的な投稿タイミングを教えてください",
-  "来月の目標アクセス数はどのくらいが現実的ですか？",
-  "アクセスを増やすために今週やるべきことは？",
-  "給料日前後の戦略を教えてください",
-];
-
 export default function AccessAnalysisPage() {
-  const [tab, setTab] = useState<"new" | "history" | "consultant">("new");
+  const [tab, setTab] = useState<"new" | "history">("new");
   const [memberId, setMemberId] = useState<string | null>(null);
 
   // 新規分析
@@ -59,12 +49,6 @@ export default function AccessAnalysisPage() {
   const [analyses, setAnalyses] = useState<AccessAnalysis[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
 
-  // コンサル
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
-  const chatBottomRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const raw = localStorage.getItem("yorushokuCurrentUser");
     if (raw) {
@@ -73,10 +57,6 @@ export default function AccessAnalysisPage() {
       loadHistory(u.id);
     }
   }, []);
-
-  useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
 
   async function loadHistory(mid: string) {
     setHistoryLoading(true);
@@ -131,9 +111,7 @@ export default function AccessAnalysisPage() {
       if (data.error) throw new Error(data.error);
 
       setCurrentResult(data as AccessAnalysis);
-      // 履歴を再取得
       if (memberId) await loadHistory(memberId);
-      setTab("new");
     } catch (err) {
       setUploadError(String(err).replace("Error: ", ""));
     } finally {
@@ -149,46 +127,6 @@ export default function AccessAnalysisPage() {
     if (inputRef.current) inputRef.current.value = "";
   }
 
-  async function handleChat(question: string) {
-    if (!question.trim() || chatLoading) return;
-    setChatInput("");
-
-    const newMessages: ChatMessage[] = [...chatMessages, { role: "user", content: question }];
-    setChatMessages(newMessages);
-    setChatLoading(true);
-
-    try {
-      const historySummary = analyses.map((a) => ({
-        period: a.period,
-        stats: a.stats,
-        patterns: a.patterns,
-        postingTiming: a.postingTiming,
-      }));
-
-      const res = await fetch("/api/access-consultant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question,
-          history: historySummary,
-          chatHistory: chatMessages.slice(-8),
-        }),
-      });
-
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      setChatMessages([...newMessages, { role: "assistant", content: data.answer }]);
-    } catch (err) {
-      setChatMessages([
-        ...newMessages,
-        { role: "assistant", content: "エラーが発生しました。もう一度お試しください。" },
-      ]);
-    } finally {
-      setChatLoading(false);
-    }
-  }
-
   const maxHits = currentResult
     ? Math.max(...(currentResult.dailyData?.map((d) => d.hits) ?? [1]))
     : 1;
@@ -196,7 +134,6 @@ export default function AccessAnalysisPage() {
   const tabs = [
     { key: "new", label: "新規分析" },
     { key: "history", label: `履歴・トレンド（${analyses.length}件）` },
-    { key: "consultant", label: "コンサル相談" },
   ] as const;
 
   return (
@@ -204,9 +141,9 @@ export default function AccessAnalysisPage() {
       <div className="mx-auto max-w-4xl">
         <div className="mb-6">
           <p className="text-sm font-medium text-[#a3476b]">アクセス分析</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">アクセス分析・コンサル</h1>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight">アクセス分析</h1>
           <p className="mt-2 text-sm leading-7 text-[#66616d]">
-            毎月のスクショを蓄積してAIが傾向を伴走分析。チャットで何でも相談できます。
+            毎月のスクショを蓄積してAIが傾向を分析。改善提案と最適投稿タイミングをお伝えします。
           </p>
         </div>
 
@@ -288,10 +225,10 @@ export default function AccessAnalysisPage() {
               </div>
             ) : (
               <div className="space-y-5">
-                {/* コンサルメッセージ */}
+                {/* AIメッセージ */}
                 {currentResult.consultantMessage && (
                   <div className="rounded-[24px] bg-[#a3476b] p-5 text-white shadow-sm">
-                    <p className="text-xs font-semibold opacity-75">AIコンサルタントより</p>
+                    <p className="text-xs font-semibold opacity-75">AI分析コメント</p>
                     <p className="mt-2 text-sm leading-7">{currentResult.consultantMessage}</p>
                   </div>
                 )}
@@ -401,16 +338,10 @@ export default function AccessAnalysisPage() {
                   </ul>
                 </div>
 
-                <div className="flex gap-3">
-                  <button type="button" onClick={handleReset}
-                    className="inline-flex h-12 flex-1 items-center justify-center rounded-2xl border border-[#d8d3dc] bg-white text-sm font-medium text-[#2c2933]">
-                    別のスクショを分析
-                  </button>
-                  <button type="button" onClick={() => setTab("consultant")}
-                    className="inline-flex h-12 flex-1 items-center justify-center rounded-2xl bg-[#a3476b] text-sm font-semibold text-white">
-                    コンサルに相談する
-                  </button>
-                </div>
+                <button type="button" onClick={handleReset}
+                  className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-[#d8d3dc] bg-white text-sm font-medium text-[#2c2933]">
+                  別のスクショを分析する
+                </button>
               </div>
             )}
           </div>
@@ -494,87 +425,6 @@ export default function AccessAnalysisPage() {
                   </div>
                 ))}
               </>
-            )}
-          </div>
-        )}
-
-        {/* ===== コンサル相談タブ ===== */}
-        {tab === "consultant" && (
-          <div className="space-y-4">
-            <div className="rounded-[28px] bg-white shadow-sm ring-1 ring-[#ebe7ef]">
-              {/* チャット履歴 */}
-              <div className="min-h-[300px] max-h-[500px] overflow-y-auto p-5 space-y-4">
-                {chatMessages.length === 0 && (
-                  <div className="text-center py-8">
-                    <p className="text-2xl">💬</p>
-                    <p className="mt-3 text-sm font-medium text-[#2c2933]">AIコンサルタントに相談する</p>
-                    <p className="mt-1 text-xs text-[#7b7682]">
-                      {analyses.length > 0
-                        ? `${analyses.length}ヶ月分のデータをもとに答えます`
-                        : "スクショを分析するとより精度の高い回答ができます"}
-                    </p>
-                  </div>
-                )}
-                {chatMessages.map((m, i) => (
-                  <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-7 ${
-                      m.role === "user"
-                        ? "bg-[#a3476b] text-white"
-                        : "bg-[#f3f0f6] text-[#2c2933]"
-                    }`}>
-                      {m.content}
-                    </div>
-                  </div>
-                ))}
-                {chatLoading && (
-                  <div className="flex justify-start">
-                    <div className="rounded-2xl bg-[#f3f0f6] px-4 py-3 text-sm text-[#7b7682]">
-                      考え中…
-                    </div>
-                  </div>
-                )}
-                <div ref={chatBottomRef} />
-              </div>
-
-              {/* 入力エリア */}
-              <div className="border-t border-[#f0ecf4] p-4">
-                <div className="flex gap-2">
-                  <input
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleChat(chatInput))}
-                    placeholder="質問を入力…"
-                    className="h-12 flex-1 rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none focus:border-[#a3476b]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleChat(chatInput)}
-                    disabled={!chatInput.trim() || chatLoading}
-                    className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#a3476b] px-4 text-sm font-semibold text-white disabled:bg-[#d2afbe]"
-                  >
-                    送信
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* サジェスト質問 */}
-            {chatMessages.length === 0 && (
-              <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-[#ebe7ef]">
-                <p className="text-xs font-semibold text-[#a3476b]">よく聞かれる質問</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {SUGGESTED_QUESTIONS.map((q) => (
-                    <button
-                      key={q}
-                      type="button"
-                      onClick={() => handleChat(q)}
-                      className="rounded-full border border-[#d8d3dc] bg-white px-3 py-1.5 text-xs font-medium text-[#2c2933] transition hover:bg-[#fdf6f9] hover:border-[#a3476b]"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
             )}
           </div>
         )}
