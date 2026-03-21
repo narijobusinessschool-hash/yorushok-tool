@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
-const MEMBERS_KEY = "yorushokuMembers";
+import { supabase } from "@/lib/supabase";
 
 type MemberStatus = "契約中" | "停止中" | "解約";
 type MemberRole = "管理者" | "一般会員";
@@ -180,15 +179,34 @@ function UsageToggle({
 }
 
 export default function AdminMembersPage() {
-  const [members, setMembers] = useState<Member[]>(() => {
-    if (typeof window === "undefined") return initialMembers;
-    const raw = localStorage.getItem(MEMBERS_KEY);
-    return raw ? JSON.parse(raw) : initialMembers;
-  });
+  const [members, setMembers] = useState<Member[]>([]);
 
   useEffect(() => {
-    localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
-  }, [members]);
+    supabase
+      .from("members")
+      .select("*")
+      .order("id", { ascending: true })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setMembers(
+            data.map((m) => ({
+              id: String(m.id),
+              name: m.name ?? "",
+              email: m.email ?? "",
+              password: m.password ?? "",
+              role: m.role ?? "一般会員",
+              status: m.status ?? "契約中",
+              plan: m.plan ?? "月額会員",
+              joinedAt: m.created_at ?? new Date().toISOString(),
+              lastLoginAt: m.created_at ?? new Date().toISOString(),
+              deviceStatus: "未登録" as const,
+              usagePermission: m.usage_permission ?? true,
+              note: m.note ?? "",
+            }))
+          );
+        }
+      });
+  }, []);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<"すべて" | MemberStatus>("すべて");
 
@@ -231,45 +249,46 @@ export default function AdminMembersPage() {
     setTimeout(() => setMessage(""), 1800);
   }
 
-  function togglePermission(memberId: string, enable: boolean) {
+  async function togglePermission(memberId: string, enable: boolean) {
+    if (!enable) {
+      const confirmed = window.confirm("本当に停止しますか？");
+      if (!confirmed) return;
+    }
+
+    const newStatus = enable ? "契約中" : "停止中";
+    const member = members.find((m) => m.id === memberId);
+    const finalStatus = member?.status === "解約" ? "解約" : newStatus;
+
+    await supabase
+      .from("members")
+      .update({ usage_permission: enable, status: finalStatus })
+      .eq("id", memberId);
+
     setMembers((prev) =>
-      prev.map((member) => {
-        if (member.id !== memberId) return member;
-
-        if (enable) {
-          return {
-            ...member,
-            usagePermission: true,
-            status: member.status === "解約" ? member.status : "契約中",
-          };
-        }
-
-        const confirmed = window.confirm("本当に停止しますか？");
-        if (!confirmed) return member;
-
-        return {
-          ...member,
-          usagePermission: false,
-          status: member.status === "解約" ? member.status : "停止中",
-        };
-      })
+      prev.map((m) =>
+        m.id === memberId
+          ? { ...m, usagePermission: enable, status: finalStatus as MemberStatus }
+          : m
+      )
     );
 
-    if (enable) {
-      showMessage("利用を再開しました");
-    }
+    if (enable) showMessage("利用を再開しました");
   }
 
-  function changeStatus(memberId: string, newStatus: MemberStatus) {
+  async function changeStatus(memberId: string, newStatus: MemberStatus) {
+    await supabase
+      .from("members")
+      .update({
+        status: newStatus,
+        usage_permission: newStatus === "契約中" ? true : false,
+      })
+      .eq("id", memberId);
+
     setMembers((prev) =>
-      prev.map((member) =>
-        member.id === memberId
-          ? {
-              ...member,
-              status: newStatus,
-              usagePermission: newStatus === "契約中" ? member.usagePermission : false,
-            }
-          : member
+      prev.map((m) =>
+        m.id === memberId
+          ? { ...m, status: newStatus, usagePermission: newStatus === "契約中" }
+          : m
       )
     );
   }
@@ -278,7 +297,7 @@ export default function AdminMembersPage() {
     setGeneratedPassword(generatePassword());
   }
 
-  function addMember() {
+  async function addMember() {
     if (!newName.trim()) {
       showMessage("名前を入力してください");
       return;
@@ -290,7 +309,7 @@ export default function AdminMembersPage() {
     }
 
     const emailExists = members.some(
-      (member) => member.email.toLowerCase() === newEmail.trim().toLowerCase()
+      (m) => m.email.toLowerCase() === newEmail.trim().toLowerCase()
     );
 
     if (emailExists) {
@@ -298,24 +317,44 @@ export default function AdminMembersPage() {
       return;
     }
 
+    const { data, error } = await supabase
+      .from("members")
+      .insert({
+        name: newName.trim(),
+        email: newEmail.trim(),
+        password: generatedPassword,
+        role: newRole,
+        status: "契約中",
+        plan: newPlan,
+        usage_permission: true,
+        note: newNote.trim(),
+      })
+      .select()
+      .single();
+
+    if (error || !data) {
+      showMessage("登録に失敗しました。もう一度お試しください。");
+      return;
+    }
+
     const now = new Date().toISOString();
-
-    const newMember: Member = {
-      id: generateMemberId(members.length),
-      name: newName.trim(),
-      email: newEmail.trim(),
-      password: generatedPassword,
-      role: newRole,
-      status: "契約中",
-      plan: newPlan,
-      joinedAt: now,
-      lastLoginAt: now,
-      deviceStatus: "未登録",
-      usagePermission: true,
-      note: newNote.trim(),
-    };
-
-    setMembers((prev) => [newMember, ...prev]);
+    setMembers((prev) => [
+      {
+        id: String(data.id),
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        role: data.role,
+        status: data.status,
+        plan: data.plan,
+        joinedAt: data.created_at ?? now,
+        lastLoginAt: data.created_at ?? now,
+        deviceStatus: "未登録",
+        usagePermission: data.usage_permission,
+        note: data.note ?? "",
+      },
+      ...prev,
+    ]);
 
     setNewName("");
     setNewEmail("");

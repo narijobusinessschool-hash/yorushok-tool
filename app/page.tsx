@@ -2,31 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 const SAVED_LOGIN_KEY = "yorushokuSavedLogin";
-
-type Member = {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-  role: "管理者" | "一般会員";
-  status: "契約中" | "停止中" | "解約";
-  usagePermission: boolean;
-};
-
-const MEMBERS_KEY = "yorushokuMembers";
 const CURRENT_USER_KEY = "yorushokuCurrentUser";
-
-const fallbackAdmin: Member = {
-  id: "M-0001",
-  name: "管理者",
-  email: "narijo.businessschool@gmail.com",
-  password: "T7LfGJtR",
-  role: "管理者",
-  status: "契約中",
-  usagePermission: true,
-};
 
 export default function Home() {
   const router = useRouter();
@@ -46,42 +25,42 @@ export default function Home() {
     }
   }, []);
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const raw = localStorage.getItem(MEMBERS_KEY);
-      const members: Member[] = raw ? JSON.parse(raw) : [fallbackAdmin];
+      const { data, error: dbError } = await supabase
+        .from("members")
+        .select("*")
+        .eq("email", email.trim())
+        .eq("password", password)
+        .single();
 
-      const matched = members.find(
-        (m) => m.email === email.trim() && m.password === password
-      );
-
-      if (!matched) {
+      if (dbError || !data) {
         setError("メールアドレスまたはパスワードが違います。");
         return;
       }
 
-      if (matched.status === "停止中") {
+      if (data.status === "停止中") {
         setError("このアカウントは現在利用停止中です。管理者にお問い合わせください。");
         return;
       }
 
-      if (matched.status === "解約") {
+      if (data.status === "解約") {
         setError("このアカウントは解約済みです。管理者にお問い合わせください。");
         return;
       }
 
-      if (!matched.usagePermission) {
+      if (!data.usage_permission) {
         setError("現在このアカウントの利用が制限されています。管理者にお問い合わせください。");
         return;
       }
 
       localStorage.setItem(
         CURRENT_USER_KEY,
-        JSON.stringify({ id: matched.id, name: matched.name, email: matched.email, role: matched.role })
+        JSON.stringify({ id: data.id, name: data.name, email: data.email, role: data.role })
       );
 
       if (rememberMe) {
@@ -90,7 +69,7 @@ export default function Home() {
         localStorage.removeItem(SAVED_LOGIN_KEY);
       }
 
-      if (matched.role === "管理者") {
+      if (data.role === "管理者") {
         router.push("/admin");
       } else {
         const hasProfile = localStorage.getItem("yorushokuPersonaProfile");
