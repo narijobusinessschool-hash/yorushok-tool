@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 type SavedProfile = {
   basic: {
@@ -46,12 +47,82 @@ type SavedProfile = {
 export default function MyPage() {
   const [profile, setProfile] = useState<SavedProfile | null>(null);
 
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwMessage, setPwMessage] = useState("");
+  const [pwError, setPwError] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
+
   useEffect(() => {
     const saved = localStorage.getItem("yorushokuPersonaProfile");
     if (saved) {
       setProfile(JSON.parse(saved));
     }
   }, []);
+
+  async function handlePasswordChange(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPwError("");
+    setPwMessage("");
+
+    if (newPassword.length < 6) {
+      setPwError("新しいパスワードは6文字以上で入力してください。");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPwError("新しいパスワードと確認用が一致しません。");
+      return;
+    }
+
+    setPwLoading(true);
+    try {
+      const raw = localStorage.getItem("yorushokuCurrentUser");
+      if (!raw) {
+        setPwError("ログイン情報が見つかりません。");
+        return;
+      }
+      const currentUser = JSON.parse(raw);
+
+      // 現在のパスワードを確認
+      const { data: member, error: fetchError } = await supabase
+        .from("members")
+        .select("id, password")
+        .eq("id", currentUser.id)
+        .single();
+
+      if (fetchError || !member) {
+        setPwError("アカウント情報の取得に失敗しました。");
+        return;
+      }
+
+      if (member.password !== currentPassword) {
+        setPwError("現在のパスワードが正しくありません。");
+        return;
+      }
+
+      // 新しいパスワードに更新
+      const { error: updateError } = await supabase
+        .from("members")
+        .update({ password: newPassword })
+        .eq("id", currentUser.id);
+
+      if (updateError) {
+        setPwError("パスワードの更新に失敗しました。もう一度お試しください。");
+        return;
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPwMessage("パスワードを変更しました。");
+    } catch {
+      setPwError("エラーが発生しました。もう一度お試しください。");
+    } finally {
+      setPwLoading(false);
+    }
+  }
 
   if (!profile) {
     return (
@@ -160,6 +231,71 @@ export default function MyPage() {
             >
               診断をやり直す
             </a>
+
+            {/* パスワード変更 */}
+            <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef]">
+              <p className="text-sm font-medium text-[#a3476b]">パスワード変更</p>
+              <form onSubmit={handlePasswordChange} className="mt-4 space-y-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[#2c2933]">
+                    現在のパスワード
+                  </label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    className="h-11 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[#2c2933]">
+                    新しいパスワード
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    placeholder="6文字以上"
+                    className="h-11 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[#2c2933]">
+                    新しいパスワード（確認）
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    placeholder="もう一度入力"
+                    className="h-11 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                  />
+                </div>
+
+                {pwError && (
+                  <p className="rounded-xl bg-[#fdf0f4] px-4 py-2 text-xs text-[#b03060]">
+                    {pwError}
+                  </p>
+                )}
+                {pwMessage && (
+                  <p className="rounded-xl bg-[#edf7f0] px-4 py-2 text-xs text-[#1f7a43]">
+                    {pwMessage}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={pwLoading}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-2xl bg-[#a3476b] text-sm font-semibold text-white transition hover:bg-[#8c3c5b] disabled:cursor-not-allowed disabled:bg-[#d2afbe]"
+                >
+                  {pwLoading ? "変更中…" : "パスワードを変更する"}
+                </button>
+              </form>
+            </div>
           </aside>
         </div>
       </div>
