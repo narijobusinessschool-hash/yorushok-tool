@@ -57,6 +57,7 @@ export default function HamburgerMenu() {
 
   function handleLogout() {
     localStorage.removeItem(CURRENT_USER_KEY);
+    document.cookie = "yorushoku_session=; path=/; max-age=0";
     router.push("/");
   }
 

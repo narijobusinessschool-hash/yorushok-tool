@@ -58,10 +58,11 @@ export default function Home() {
         return;
       }
 
-      localStorage.setItem(
-        CURRENT_USER_KEY,
-        JSON.stringify({ id: data.id, name: data.name, email: data.email, role: data.role })
-      );
+      const userData = { id: data.id, name: data.name, email: data.email, role: data.role };
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userData));
+
+      // ミドルウェア用Cookieをセット（24時間）
+      document.cookie = `yorushoku_session=${encodeURIComponent(JSON.stringify({ role: data.role }))}; path=/; max-age=86400`;
 
       if (rememberMe) {
         localStorage.setItem(SAVED_LOGIN_KEY, JSON.stringify({ email: email.trim(), password }));
