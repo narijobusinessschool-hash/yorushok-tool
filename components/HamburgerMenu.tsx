@@ -20,13 +20,10 @@ const memberMenuItems = [
 ];
 
 const adminMenuItems = [
-  { label: "新規添削", href: "/dashboard/new" },
-  { label: "添削履歴", href: "/dashboard" },
   { label: "管理画面TOP", href: "/admin" },
   { label: "会員一覧", href: "/admin/members" },
   { label: "学習モード", href: "/admin/admin/learning" },
   { label: "統計・ログ", href: "/admin/logs" },
-  { label: "マイページ", href: "/mypage" },
 ];
 
 export default function HamburgerMenu() {
