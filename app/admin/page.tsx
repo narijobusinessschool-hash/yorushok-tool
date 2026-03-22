@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import AdminNotifier from "@/components/AdminNotifier";
 
 type SavedDraftResult = {
   id: string;
@@ -149,6 +150,9 @@ export default function AdminPage() {
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
 
+  // OpenAI残高
+  const [openAiBilling, setOpenAiBilling] = useState<{ remainingUsd: number; usedUsd: number; isAlert: boolean } | null>(null);
+
   // 学習データ
   const [goodTitles, setGoodTitles] = useState<string[]>([]);
   const [goodBodies, setGoodBodies] = useState<string[]>([]);
@@ -203,6 +207,14 @@ export default function AdminPage() {
     }, 30000);
     return () => clearInterval(t);
   }, [visitorPeriod, customFrom, customTo]);
+
+  // OpenAI残高取得
+  useEffect(() => {
+    fetch("/api/admin/openai-billing")
+      .then((r) => r.json())
+      .then((d) => { if (d.remainingUsd !== undefined) setOpenAiBilling(d); })
+      .catch(() => {});
+  }, []);
 
   // ドラッグ&ドロップ操作
   function handleDragStart(id: CardId) { dragId.current = id; }
@@ -392,6 +404,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-[#f6f4f7] px-4 py-8 text-[#1f1f23] sm:px-6 lg:px-8">
+      <AdminNotifier />
       <div className="mx-auto max-w-7xl">
         <header className="mb-8 rounded-[32px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef] sm:p-8">
           <p className="text-sm font-medium text-[#a3476b]">管理画面</p>
@@ -465,6 +478,14 @@ export default function AdminPage() {
             <p className="mt-3 text-3xl font-bold">
               {Math.max(analysis.allPatterns.length - approvedCount, 0)}
             </p>
+          </div>
+          <div className={`rounded-[24px] p-5 shadow-sm ring-1 sm:col-span-2 xl:col-span-2 ${openAiBilling?.isAlert ? "bg-[#1e0a12] ring-[#5c1a2e]" : "bg-white ring-[#ebe7ef]"}`}>
+            <p className={`text-sm ${openAiBilling?.isAlert ? "text-[#f87171]" : "text-[#66616d]"}`}>OpenAI残高</p>
+            <p className={`mt-3 text-3xl font-bold ${openAiBilling?.isAlert ? "text-[#f87171]" : ""}`}>
+              {openAiBilling ? `$${openAiBilling.remainingUsd.toFixed(2)}` : "—"}
+            </p>
+            {openAiBilling?.isAlert && <p className="mt-1 text-xs text-[#f87171]">⚠️ 残高が少なくなっています</p>}
+            {openAiBilling && !openAiBilling.isAlert && <p className="mt-1 text-xs text-[#9b92a4]">今月使用: ${openAiBilling.usedUsd.toFixed(2)}</p>}
           </div>
         </section>
 

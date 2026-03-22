@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { createClient } from "@supabase/supabase-js";
+import { notifyNewMember } from "@/lib/notify";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -49,6 +50,8 @@ export async function POST(req: Request) {
     if (insertError || !data) {
       return NextResponse.json({ error: "登録に失敗しました。もう一度お試しください。" }, { status: 500 });
     }
+
+    notifyNewMember(email.trim(), data.id).catch(() => {});
 
     return NextResponse.json({
       user: { id: data.id, name: data.name ?? "", email: data.email, role: data.role },
