@@ -8,23 +8,23 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { memberId, draftResultId, rating, reason, eventType } = await req.json();
+    const { memberId, draftResultId, rating, reason, eventType, improvedText, category } = await req.json();
 
     if (eventType === "copy") {
-      // 暗示的フィードバック: コピーイベントを記録
+      // 暗示的フィードバック: コピーイベントと文章を記録
       await supabaseAdmin.from("usage_events").insert({
         event_type: "copy_body",
         user_id: memberId ? String(memberId) : null,
-        meta: { draftResultId },
+        meta: { draftResultId, improvedText: improvedText ?? null, category: category ?? null },
       });
       return NextResponse.json({ ok: true });
     }
 
-    // 明示的フィードバック: 評価を記録
+    // 明示的フィードバック: 評価・理由・文章を記録
     await supabaseAdmin.from("usage_events").insert({
       event_type: "feedback",
       user_id: memberId ? String(memberId) : null,
-      meta: { draftResultId, rating, reason: reason ?? null },
+      meta: { draftResultId, rating, reason: reason ?? null, improvedText: improvedText ?? null, category: category ?? null },
     });
     return NextResponse.json({ ok: true });
   } catch {

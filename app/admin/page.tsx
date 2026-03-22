@@ -85,8 +85,8 @@ const GOOD_TITLES_KEY = "yorushokuGoodTitles";
 const GOOD_BODIES_KEY = "yorushokuGoodBodies";
 const NG_WORDS_KEY = "yorushokuLearningConfig";
 
-type CardId = "members" | "permissions" | "device" | "logs" | "inquiries" | "visitors";
-const DEFAULT_CARD_ORDER: CardId[] = ["members", "permissions", "device", "logs", "inquiries", "visitors"];
+type CardId = "members" | "permissions" | "device" | "logs" | "inquiries" | "visitors" | "feedback";
+const DEFAULT_CARD_ORDER: CardId[] = ["members", "permissions", "device", "logs", "inquiries", "visitors", "feedback"];
 const CARD_ORDER_KEY = "yorushokuAdminCardOrder";
 
 type VisitorPeriod = "day" | "week" | "month" | "60d" | "90d" | "all" | "custom";
@@ -557,6 +557,17 @@ export default function AdminPage() {
                       </div>
                       <p className="mt-3 text-sm leading-7 text-[#5d5965]">ユーザーからの機能改善リクエストを確認します。{unreadCount > 0 ? `未読 ${unreadCount}件があります。` : "未読なし。"}</p>
                       <a href="/admin/inquiries" onClick={(e) => e.stopPropagation()} className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933] hover:bg-[#faf8fb]">開く</a>
+                    </div>
+                  );
+
+                  if (id === "feedback") return (
+                    <div key={id} draggable onDragStart={() => handleDragStart(id)} onDragOver={(e) => handleDragOver(e, id)} onDrop={() => handleDrop(id)} onDragEnd={() => setDragOverId(null)} className={baseClass}>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-[#2c2933]">フィードバック分析</p>
+                        <span className="rounded-full bg-[#f4e2ea] px-2 py-0.5 text-xs font-medium text-[#7a2e4d]">本音/建前</span>
+                      </div>
+                      <p className="mt-3 text-sm leading-7 text-[#5d5965]">コピー行動（本音）と評価回答（建前）の2層でユーザー満足度を把握します。</p>
+                      <a href="/admin/feedback" onClick={(e) => e.stopPropagation()} className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933] hover:bg-[#faf8fb]">開く</a>
                     </div>
                   );
 

@@ -517,6 +517,7 @@ export default function NewPostPage() {
   const [feedbackRating, setFeedbackRating] = useState<"使う予定" | "たぶん使う" | "使わない" | null>(null);
   const [showFeedbackReason, setShowFeedbackReason] = useState(false);
   const [lastCopiedResultId, setLastCopiedResultId] = useState<string | null>(null);
+  const [lastCopiedText, setLastCopiedText] = useState<string | null>(null);
 
   const [drafts, setDrafts] = useState<SavedDraftResult[]>([]);
   const [outcomes, setOutcomes] = useState<OutcomeMap>({});
@@ -654,6 +655,7 @@ export default function NewPostPage() {
         const currentUser = rawUser ? JSON.parse(rawUser) : null;
         const resultId = result ? (result as AnalysisResult & { id?: string }).id : null;
         setLastCopiedResultId(resultId ?? null);
+        setLastCopiedText(value);
         fetch("/api/feedback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -661,6 +663,8 @@ export default function NewPostPage() {
             memberId: currentUser?.id,
             draftResultId: resultId,
             eventType: "copy",
+            improvedText: value,
+            category,
           }),
         }).catch(() => {});
 
@@ -695,6 +699,8 @@ export default function NewPostPage() {
         draftResultId: lastCopiedResultId,
         rating,
         eventType: "feedback",
+        improvedText: lastCopiedText,
+        category,
       }),
     }).catch(() => {});
 
@@ -714,6 +720,8 @@ export default function NewPostPage() {
         rating: "使わない",
         reason,
         eventType: "feedback",
+        improvedText: lastCopiedText,
+        category,
       }),
     }).catch(() => {});
 
