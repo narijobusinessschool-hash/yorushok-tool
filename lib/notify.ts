@@ -3,7 +3,7 @@
 
 const ADMIN_EMAIL = "narijo.businessschool@gmail.com";
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? "";
-const NTFY_TOPIC = process.env.NTFY_TOPIC ?? "yorushoku-admin-8x7k2p"; // デフォルトtopicを設定
+const NTFY_TOPIC = process.env.NTFY_TOPIC ?? "";
 
 /** Resend APIでメールを送信 */
 async function sendEmail(subject: string, html: string) {
