@@ -30,6 +30,7 @@ type RequestBody = {
   category?: "写メ日記" | "オキニトーク" | "SNS";
   purpose?: string;
   emotionTarget?: string;
+  sellType?: string;
   industry?: string;
   okiniPurpose?: string;
   relationshipLevel?: string;
@@ -87,6 +88,7 @@ export async function POST(req: Request) {
     const category = body.category ?? "写メ日記";
     const purpose = body.purpose ?? "";
     const emotionTarget = body.emotionTarget ?? "";
+    const sellType = body.sellType ?? "共通";
     const industry = body.industry ?? "";
     const okiniPurpose = body.okiniPurpose ?? "";
     const relationshipLevel = body.relationshipLevel ?? "";
@@ -159,8 +161,18 @@ export async function POST(req: Request) {
       : "診断情報なし";
 
     let categoryContextText = "";
+    const sellTypeHintMap: Record<string, string> = {
+      "M売り": "M売り（受け身・甘え系）に特化。リードしてほしい・守られたいという欲求に寄り添い、従順さや甘えをさりげなく表現する。「引っ張ってほしい」「言われたら従う」という心理に訴える。",
+      "S売り": "S売り（積極的・引っ張る系）に特化。主導権・頼れる自信・リードする安心感を前面に出す。「任せてて」「全部決めてあげる」という姿勢を自然に表現する。",
+      "痴女売り": "痴女売りに特化。大人の積極性・性的な奔放さを品よく匂わせる。露骨すぎず意味深な余白で想像させる。直接的な表現は避け、雰囲気と一言で引き込む。",
+      "巨乳売り": "巨乳売りに特化。身体的な存在感・視線を集める魅力を品よく打ち出す。「そばにいるだけで感じる」「目が離せない」という体験を想像させる。露骨にならず雰囲気と余白で伝える。",
+      "共通": "売り別を意識せず幅広い客層に刺さる汎用的な文章にする。",
+    };
+    const sellTypeHint = sellTypeHintMap[sellType] ?? sellTypeHintMap["共通"];
+
     if (category === "写メ日記") {
       categoryContextText = `狙いたい感情: ${emotionTarget || "指定なし"}
+売り別: ${sellType}（${sellTypeHint}）
 目的: ${purpose || "指定なし"}（アクセス増 / 予約増 / 本指名増）`;
     } else if (category === "オキニトーク") {
       categoryContextText = `目的: ${okiniPurpose || "指定なし"}（初来店の促し / 再来店の促し）

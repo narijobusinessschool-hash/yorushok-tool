@@ -24,6 +24,14 @@ const characterOptions = [
   "ナチュラル系",
 ];
 
+const sellTypeOptions = [
+  "共通（売り別なし）",
+  "M売り",
+  "S売り",
+  "痴女売り",
+  "巨乳売り",
+];
+
 const industryOptions = [
   "ピンサロ",
   "デリヘル",
@@ -324,6 +332,7 @@ function buildUspSummary({
 export default function OnboardingPage() {
   const router = useRouter();
 
+  const [selectedSellType, setSelectedSellType] = useState("");
   const [selectedCharacter, setSelectedCharacter] = useState("");
   const [selectedIndustry, setSelectedIndustry] = useState("");
   const [selectedMainGoal, setSelectedMainGoal] = useState("");
@@ -455,6 +464,7 @@ export default function OnboardingPage() {
   const handleComplete = async () => {
     const payload = {
       basic: {
+        sellType: selectedSellType,
         character: selectedCharacter,
         industry: selectedIndustry,
         prefecture: selectedPrefecture,
@@ -523,6 +533,13 @@ export default function OnboardingPage() {
             <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef] sm:p-8">
               <h2 className="text-xl font-bold">1. 基本設定</h2>
               <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <SelectField
+                  label="売り別"
+                  value={selectedSellType}
+                  onChange={setSelectedSellType}
+                  options={sellTypeOptions}
+                  placeholder="選択してください（任意）"
+                />
                 <SelectField
                   label="キャラ設定"
                   value={selectedCharacter}

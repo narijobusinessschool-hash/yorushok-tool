@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import PlanLimitModal from "@/components/PlanLimitModal";
 
 type Category = "写メ日記" | "オキニトーク" | "SNS";
+type SellType = "M売り" | "S売り" | "痴女売り" | "巨乳売り" | "共通";
 type OkiniPurpose = "初来店の促し" | "再来店の促し";
 type RelationshipLevel = "初めてやり取り" | "1回会った" | "リピート中";
 type InterestLevel = "低" | "中" | "高";
@@ -316,6 +317,56 @@ const industrySpecificTitleMap: Record<
   },
 };
 
+const sellTypeTitleMap: Record<SellType, string[]> = {
+  "M売り": [
+    "言われるまま、甘えていいですか？",
+    "今日だけ、ワガママ聞いてほしいな",
+    "リードしてくれる人って、なんか安心する",
+    "強い人の隣にいると、力が抜けるよね",
+    "引っ張ってくれるだけで、それだけでいいの",
+    "甘えさせてくれる人のそばにいたい",
+  ],
+  "S売り": [
+    "今日くらい、私に任せてみて？",
+    "引っ張られる夜って、たまにいいよね",
+    "リードされたい夜、ない？",
+    "私が全部決めていい日にしてあげる",
+    "少しだけ、主導権こっちにちょうだい",
+    "大人しくしてたら、ちゃんと満たしてあげる",
+  ],
+  "痴女売り": [
+    "あなたのこと、もっと知りたくて",
+    "少しだけ大人の時間、どう？",
+    "気になってることがあるの、話してもいい？",
+    "大人な時間って、やっぱり特別だよね",
+    "あなたと過ごす夜、想像したことある？",
+    "正直に言うと、会いたいって思ってた",
+  ],
+  "巨乳売り": [
+    "視線感じてるの、気づいてる？",
+    "この感じ、ちゃんと伝わってる？",
+    "近くにいると、ちょっと落ち着く？",
+    "存在感って、言葉より先に伝わるよね",
+    "ちゃんと見てほしいものがあるの",
+    "そばにいるだけで、なんか安心してほしいな",
+  ],
+  "共通": [
+    "少しだけ気分を変えたい日に思い出してほしい",
+    "ちゃんと満たされる時間、欲しくない？",
+    "会ってよかったって思える夜にしたい",
+    "また来たくなる理由、ちゃんとあるよ",
+    "今日の気分に合う時間、ここにあるよ",
+  ],
+};
+
+const sellTypeBodyHint: Record<SellType, string> = {
+  "M売り": "M売り（受け身・甘え系）に特化した文章。リードしてほしい・守られたいという気持ちに寄り添い、従順さや甘えをさりげなく出す。「言われたら従う」「引っ張ってほしい」という心理に訴える。",
+  "S売り": "S売り（積極的・引っ張る系）に特化した文章。主導権を持ち、相手をリードする安心感・頼れる存在感を前面に出す。「任せてて」「全部決めてあげる」という姿勢で自信を見せる。",
+  "痴女売り": "痴女売りに特化した文章。大人の積極性・性的な奔放さを品よく匂わせる。露骨すぎず、でも想像させる余白を持たせた表現にする。直接的な言葉は避け、意味深な一言で引き込む。",
+  "巨乳売り": "巨乳売りに特化した文章。身体的な存在感・視線を集める魅力を品よく打ち出す。「そばにいるだけで感じる」「目が離せない」という体験を想像させる表現を使う。露骨にならず、雰囲気と余白で伝える。",
+  "共通": "売り別を意識せず、幅広い客層に刺さる汎用的な文章。癒し・親しみ・特別感を自然にブレンドする。",
+};
+
 function getProfileEmotion(profile: SavedProfile | null): EmotionTarget | null {
   if (!profile) return null;
   if (profile.persona.emotionNeeds.includes("癒し")) return "癒し";
@@ -440,6 +491,7 @@ export default function NewPostPage() {
   const [emotionTarget, setEmotionTarget] = useState<EmotionTarget>("癒し");
   const [shameNikkiGoal, setShameNikkiGoal] =
     useState<ShameNikkiGoal>("アクセス増");
+  const [sellType, setSellType] = useState<SellType>("共通");
 
   const [text, setText] = useState("");
 
@@ -708,7 +760,9 @@ export default function NewPostPage() {
           ]
         : [];
 
-    return [...successBoost, ...industrySpecific, ...positioningAdditions, ...base];
+    const sellTypeAdditions = sellType !== "共通" ? sellTypeTitleMap[sellType] : [];
+
+    return [...successBoost, ...sellTypeAdditions, ...industrySpecific, ...positioningAdditions, ...base];
   }
 
   function generateAiTitle() {
@@ -1018,6 +1072,7 @@ ${successLine}
           category,
           purpose: category === "写メ日記" ? shameNikkiGoal : undefined,
           emotionTarget: category === "写メ日記" ? emotionTarget : undefined,
+          sellType: category === "写メ日記" ? sellType : undefined,
           industry: profile?.basic.industry,
           okiniPurpose: category === "オキニトーク" ? okiniPurpose : undefined,
           relationshipLevel:
@@ -1165,6 +1220,26 @@ ${successLine}
                         <option>本指名増</option>
                       </select>
                     </div>
+                  </div>
+
+                  <div className="mb-5">
+                    <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
+                      売り別
+                    </label>
+                    <select
+                      value={sellType}
+                      onChange={(e) => setSellType(e.target.value as SellType)}
+                      className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
+                    >
+                      <option>共通</option>
+                      <option>M売り</option>
+                      <option>S売り</option>
+                      <option>痴女売り</option>
+                      <option>巨乳売り</option>
+                    </select>
+                    <p className="mt-1.5 text-xs text-[#4d4866]">
+                      選ぶとタイトル提案・本文の方向性が売り別に最適化されます
+                    </p>
                   </div>
 
                   <div className="mb-5">
