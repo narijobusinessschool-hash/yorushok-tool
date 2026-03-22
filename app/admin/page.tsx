@@ -546,7 +546,7 @@ export default function AdminPage() {
                     <div key={id} draggable onDragStart={() => handleDragStart(id)} onDragOver={(e) => handleDragOver(e, id)} onDrop={() => handleDrop(id)} onDragEnd={() => setDragOverId(null)} className={baseClass}>
                       <p className="text-sm font-semibold text-[#2c2933]">利用権限管理</p>
                       <p className="mt-3 text-sm leading-7 text-[#5d5965]">契約中かどうか、使用可能かどうか、手動承認のON/OFFをここにまとめます。</p>
-                      <button type="button" className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933]">後で実装</button>
+                      <a href="/admin/permissions" onClick={(e) => e.stopPropagation()} className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933] hover:bg-[#faf8fb]">開く</a>
                     </div>
                   );
 
@@ -554,7 +554,7 @@ export default function AdminPage() {
                     <div key={id} draggable onDragStart={() => handleDragStart(id)} onDragOver={(e) => handleDragOver(e, id)} onDrop={() => handleDrop(id)} onDragEnd={() => setDragOverId(null)} className={baseClass}>
                       <p className="text-sm font-semibold text-[#2c2933]">端末制限</p>
                       <p className="mt-3 text-sm leading-7 text-[#5d5965]">1契約1端末管理、端末解除、再承認の導線をここに集約します。</p>
-                      <button type="button" className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933]">後で実装</button>
+                      <a href="/admin/device" onClick={(e) => e.stopPropagation()} className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933] hover:bg-[#faf8fb]">開く</a>
                     </div>
                   );
 
@@ -562,7 +562,7 @@ export default function AdminPage() {
                     <div key={id} draggable onDragStart={() => handleDragStart(id)} onDragOver={(e) => handleDragOver(e, id)} onDrop={() => handleDrop(id)} onDragEnd={() => setDragOverId(null)} className={baseClass}>
                       <p className="text-sm font-semibold text-[#2c2933]">管理者ログ</p>
                       <p className="mt-3 text-sm leading-7 text-[#5d5965]">誰がどのパターンを承認したか、権限変更したかを記録する予定です。</p>
-                      <button type="button" className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933]">後で実装</button>
+                      <a href="/admin/logs" onClick={(e) => e.stopPropagation()} className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933] hover:bg-[#faf8fb]">開く</a>
                     </div>
                   );
 

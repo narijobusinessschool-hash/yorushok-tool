@@ -25,6 +25,17 @@ type EventCount = { event_type: string; count: number };
 const EVENT_LABELS: Record<string, string> = {
   login_success: "ログイン成功",
   analyze_success: "AI添削実行",
+  admin_log: "管理者操作",
+  pattern_suggestion: "パターン提案",
+  copy_body: "本文コピー",
+  feedback: "フィードバック",
+  page_view: "ページ閲覧",
+};
+
+const ADMIN_ACTION_LABELS: Record<string, string> = {
+  permission_change: "権限変更",
+  device_reset: "デバイスリセット",
+  device_set_reapproval: "再承認要求",
 };
 
 const ERROR_LABELS: Record<string, string> = {
@@ -53,7 +64,7 @@ export default function AdminLogsPage() {
   const [errors, setErrors] = useState<ErrorLog[]>([]);
   const [eventCounts, setEventCounts] = useState<EventCount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"stats" | "errors">("stats");
+  const [tab, setTab] = useState<"stats" | "errors" | "admin">("stats");
 
   useEffect(() => {
     async function fetchAll() {
@@ -162,7 +173,7 @@ export default function AdminLogsPage() {
 
         {/* タブ */}
         <div className="mt-6 flex gap-1 rounded-2xl bg-[#f3f0f6] p-1 w-fit">
-          {(["stats", "errors"] as const).map((t) => (
+          {(["stats", "errors", "admin"] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -173,7 +184,7 @@ export default function AdminLogsPage() {
                   : "text-[#66616d] hover:text-[#2c2933]"
               }`}
             >
-              {t === "stats" ? "利用統計" : `エラーログ（${errors.length}件）`}
+              {t === "stats" ? "利用統計" : t === "errors" ? `エラーログ（${errors.length}件）` : "管理者操作ログ"}
             </button>
           ))}
         </div>
@@ -284,6 +295,55 @@ export default function AdminLogsPage() {
             </div>
           </section>
         )}
+
+        {tab === "admin" && (() => {
+          const adminLogs = events.filter((e) => e.event_type === "admin_log");
+          return (
+            <section className="mt-4 rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef] sm:p-8">
+              <p className="text-sm font-medium text-[#a3476b]">管理者操作ログ（{adminLogs.length}件）</p>
+              <div className="mt-5 space-y-3">
+                {loading ? (
+                  <p className="text-sm text-[#66616d]">読み込み中…</p>
+                ) : adminLogs.length > 0 ? (
+                  adminLogs.map((e) => {
+                    const action = e.meta?.action as string | undefined;
+                    const label = action ? (ADMIN_ACTION_LABELS[action] ?? action) : "操作";
+                    const targetName = e.meta?.targetName as string | undefined;
+                    return (
+                      <div
+                        key={e.id}
+                        className="rounded-2xl border border-[#ece7ef] bg-[#fcfbfd] px-4 py-4"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-[#f3f0f6] px-2.5 py-1 text-xs font-semibold text-[#5d3e72]">
+                                {label}
+                              </span>
+                              {targetName && (
+                                <span className="text-sm font-medium text-[#2c2933]">{targetName}</span>
+                              )}
+                            </div>
+                            {e.meta && (
+                              <div className="mt-2 flex flex-wrap gap-3 text-xs text-[#7b7682]">
+                                {e.meta.field && <span>フィールド: {e.meta.field as string}</span>}
+                                {e.meta.value !== undefined && <span>値: {String(e.meta.value)}</span>}
+                                {e.meta.targetMemberId && <span className="font-mono text-[#9b92a4]">ID: {(e.meta.targetMemberId as string).slice(0, 8)}…</span>}
+                              </div>
+                            )}
+                          </div>
+                          <span className="shrink-0 text-xs text-[#9b92a4]">{formatDate(e.created_at)}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-[#66616d]">管理者操作はまだ記録されていません。</p>
+                )}
+              </div>
+            </section>
+          );
+        })()}
       </div>
     </main>
   );
