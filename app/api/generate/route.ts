@@ -82,7 +82,7 @@ export async function POST(req: Request) {
         return NextResponse.json(
           {
             error: "limit_exceeded",
-            message: "無料体験の3回を使い切りました。NBSに入会すると無制限で使えます。",
+            message: "今月の無料添削10回を使い切りました。NBSに入会すると無制限で使えます。",
           },
           { status: 429 }
         );

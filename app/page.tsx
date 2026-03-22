@@ -169,7 +169,7 @@ export default function Home() {
         <p className="mt-6 text-center text-sm text-[#8b84a8]">
           まだアカウントをお持ちでない方は{" "}
           <a href="/signup" className="font-semibold text-[#e85d8a] hover:underline">
-            無料で3回試す →
+            無料で試す（月10回） →
           </a>
         </p>
       </div>

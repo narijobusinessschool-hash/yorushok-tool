@@ -462,7 +462,7 @@ export default function AdminMembersPage() {
                 onChange={(e) => setNewPlan(e.target.value as MemberPlan)}
                 className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
               >
-                <option value="free">free（無料・3回）</option>
+                <option value="free">free（無料・月10回）</option>
                 <option value="nbs">nbs（NBS会員・無制限）</option>
                 <option value="suspended">suspended（停止）</option>
                 <option value="cancelled">cancelled（解約）</option>
