@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 type MemberStatus = "契約中" | "停止中" | "解約";
 type MemberRole = "管理者" | "一般会員";
 type DeviceStatus = "登録済み" | "未登録" | "再承認待ち";
+type MemberPlan = "free" | "nbs" | "suspended" | "cancelled";
 
 type Member = {
   id: string;
@@ -15,6 +16,8 @@ type Member = {
   role: MemberRole;
   status: MemberStatus;
   plan: string;
+  usageCount: number;
+  usageLimit: number;
   joinedAt: string;
   lastLoginAt: string;
   deviceStatus: DeviceStatus;
@@ -22,78 +25,7 @@ type Member = {
   note: string;
 };
 
-const initialMembers: Member[] = [
-  {
-    id: "M-0001",
-    name: "山田 花子",
-    email: "hanako@example.com",
-    password: "Abc12345!",
-    role: "一般会員",
-    status: "契約中",
-    plan: "月額会員",
-    joinedAt: "2026-03-01T10:00:00",
-    lastLoginAt: "2026-03-21T09:20:00",
-    deviceStatus: "登録済み",
-    usagePermission: true,
-    note: "デリヘル / 福岡県",
-  },
-  {
-    id: "M-0002",
-    name: "佐藤 美咲",
-    email: "misaki@example.com",
-    password: "Def67890!",
-    role: "一般会員",
-    status: "停止中",
-    plan: "月額会員",
-    joinedAt: "2026-02-15T14:30:00",
-    lastLoginAt: "2026-03-18T22:10:00",
-    deviceStatus: "再承認待ち",
-    usagePermission: false,
-    note: "メンズエステ / 東京都",
-  },
-  {
-    id: "M-0003",
-    name: "田中 奈々",
-    email: "nana@example.com",
-    password: "Ghi24680!",
-    role: "一般会員",
-    status: "解約",
-    plan: "月額会員",
-    joinedAt: "2026-01-10T12:00:00",
-    lastLoginAt: "2026-03-05T19:40:00",
-    deviceStatus: "未登録",
-    usagePermission: false,
-    note: "ソープ / 大阪府",
-  },
-  {
-    id: "M-0001",
-    name: "管理者",
-    email: "narijo.businessschool@gmail.com",
-    password: "T7LfGJtR",
-    role: "管理者",
-    status: "契約中",
-    plan: "管理者",
-    joinedAt: "2026-01-01T09:00:00",
-    lastLoginAt: "2026-03-22T00:00:00",
-    deviceStatus: "登録済み",
-    usagePermission: true,
-    note: "システム管理者",
-  },
-  {
-    id: "M-0005",
-    name: "高橋 りお",
-    email: "rio@example.com",
-    password: "Rio13579!",
-    role: "一般会員",
-    status: "契約中",
-    plan: "月額会員",
-    joinedAt: "2026-03-11T16:20:00",
-    lastLoginAt: "2026-03-20T23:48:00",
-    deviceStatus: "登録済み",
-    usagePermission: true,
-    note: "セクキャバ / 愛知県",
-  },
-];
+const initialMembers: Member[] = [];
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString("ja-JP");
@@ -196,7 +128,9 @@ export default function AdminMembersPage() {
               password: m.password ?? "",
               role: m.role ?? "一般会員",
               status: m.status ?? "契約中",
-              plan: m.plan ?? "月額会員",
+              plan: m.plan ?? "free",
+              usageCount: m.usage_count ?? 0,
+              usageLimit: m.usage_limit ?? 3,
               joinedAt: m.created_at ?? new Date().toISOString(),
               lastLoginAt: m.created_at ?? new Date().toISOString(),
               deviceStatus: "未登録" as const,
@@ -209,10 +143,11 @@ export default function AdminMembersPage() {
   }, []);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<"すべて" | MemberStatus>("すべて");
+  const [planFilter, setPlanFilter] = useState<"すべて" | MemberPlan | "上限到達">("すべて");
 
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
-  const [newPlan, setNewPlan] = useState("月額会員");
+  const [newPlan, setNewPlan] = useState<MemberPlan>("free");
   const [newRole, setNewRole] = useState<MemberRole>("一般会員");
   const [newNote, setNewNote] = useState("");
   const [generatedPassword, setGeneratedPassword] = useState(generatePassword());
@@ -230,9 +165,16 @@ export default function AdminMembersPage() {
       const matchesStatus =
         statusFilter === "すべて" || member.status === statusFilter;
 
-      return matchesKeyword && matchesStatus;
+      const matchesPlan =
+        planFilter === "すべて"
+          ? true
+          : planFilter === "上限到達"
+          ? member.plan === "free" && member.usageCount >= member.usageLimit
+          : member.plan === planFilter;
+
+      return matchesKeyword && matchesStatus && matchesPlan;
     });
-  }, [members, searchKeyword, statusFilter]);
+  }, [members, searchKeyword, statusFilter, planFilter]);
 
   const summary = useMemo(() => {
     return {
@@ -293,6 +235,29 @@ export default function AdminMembersPage() {
     );
   }
 
+  async function changePlan(memberId: string, newPlan: MemberPlan) {
+    const confirmed = window.confirm(
+      `プランを「${newPlan}」に変更しますか？`
+    );
+    if (!confirmed) return;
+
+    const newLimit = newPlan === "nbs" ? 99999 : 3;
+
+    await supabase
+      .from("members")
+      .update({ plan: newPlan, usage_limit: newLimit })
+      .eq("id", memberId);
+
+    setMembers((prev) =>
+      prev.map((m) =>
+        m.id === memberId
+          ? { ...m, plan: newPlan, usageLimit: newLimit }
+          : m
+      )
+    );
+    showMessage(`プランを ${newPlan} に変更しました`);
+  }
+
   function regeneratePassword() {
     setGeneratedPassword(generatePassword());
   }
@@ -326,6 +291,8 @@ export default function AdminMembersPage() {
         role: newRole,
         status: "契約中",
         plan: newPlan,
+        usage_count: 0,
+        usage_limit: newPlan === "nbs" ? 99999 : 3,
         usage_permission: true,
         note: newNote.trim(),
       })
@@ -347,6 +314,8 @@ export default function AdminMembersPage() {
         role: data.role,
         status: data.status,
         plan: data.plan,
+        usageCount: data.usage_count ?? 0,
+        usageLimit: data.usage_limit ?? 3,
         joinedAt: data.created_at ?? now,
         lastLoginAt: data.created_at ?? now,
         deviceStatus: "未登録",
@@ -358,7 +327,7 @@ export default function AdminMembersPage() {
 
     setNewName("");
     setNewEmail("");
-    setNewPlan("月額会員");
+    setNewPlan("free");
     setNewRole("一般会員");
     setNewNote("");
     setGeneratedPassword(generatePassword());
@@ -490,12 +459,13 @@ export default function AdminMembersPage() {
               </label>
               <select
                 value={newPlan}
-                onChange={(e) => setNewPlan(e.target.value)}
+                onChange={(e) => setNewPlan(e.target.value as MemberPlan)}
                 className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
               >
-                <option>月額会員</option>
-                <option>管理者</option>
-                <option>特別会員</option>
+                <option value="free">free（無料・3回）</option>
+                <option value="nbs">nbs（NBS会員・無制限）</option>
+                <option value="suspended">suspended（停止）</option>
+                <option value="cancelled">cancelled（解約）</option>
               </select>
             </div>
 
@@ -525,7 +495,7 @@ export default function AdminMembersPage() {
 
         <section className="mt-6 rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef] sm:p-8">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-1">
               <label className="mb-2 block text-sm font-medium text-[#2c2933]">
                 会員検索
               </label>
@@ -552,6 +522,26 @@ export default function AdminMembersPage() {
                 <option>契約中</option>
                 <option>停止中</option>
                 <option>解約</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-[#2c2933]">
+                プラン絞り込み
+              </label>
+              <select
+                value={planFilter}
+                onChange={(e) =>
+                  setPlanFilter(e.target.value as "すべて" | MemberPlan | "上限到達")
+                }
+                className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+              >
+                <option value="すべて">すべて</option>
+                <option value="上限到達">上限到達（入会待ち）</option>
+                <option value="free">free（無料）</option>
+                <option value="nbs">nbs（NBS会員）</option>
+                <option value="suspended">suspended（停止）</option>
+                <option value="cancelled">cancelled（解約）</option>
               </select>
             </div>
           </div>
@@ -597,7 +587,24 @@ export default function AdminMembersPage() {
                     <p className="mt-1 text-xs text-[#7b7682]">ID: {member.id}</p>
 
                     <div className="mt-4 space-y-2 text-sm text-[#5d5965]">
-                      <p>プラン：{member.plan}</p>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          member.plan === "nbs"
+                            ? "bg-[#e8f7ee] text-[#1f7a43]"
+                            : member.plan === "free" && member.usageCount >= member.usageLimit
+                            ? "bg-[#fdf0f4] text-[#b03060]"
+                            : "bg-[#f1eff4] text-[#4d4855]"
+                        }`}>
+                          {member.plan === "free" && member.usageCount >= member.usageLimit
+                            ? "上限到達"
+                            : member.plan}
+                        </span>
+                        {member.plan === "free" && (
+                          <span className="text-xs text-[#7b7682]">
+                            {member.usageCount}/{member.usageLimit}回使用
+                          </span>
+                        )}
+                      </div>
                       <p>参加日：{formatDateTime(member.joinedAt)}</p>
                       <p>最終ログイン：{formatDateTime(member.lastLoginAt)}</p>
                       <p>メモ：{member.note || "なし"}</p>
@@ -623,14 +630,29 @@ export default function AdminMembersPage() {
                   </div>
 
                   <div className="xl:col-span-2">
-                    <p className="text-sm font-medium text-[#2c2933]">契約状況変更</p>
+                    <p className="text-sm font-medium text-[#2c2933]">プラン変更</p>
                     <div className="mt-4">
+                      <select
+                        value={member.plan}
+                        onChange={(e) =>
+                          changePlan(member.id, e.target.value as MemberPlan)
+                        }
+                        className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm"
+                      >
+                        <option value="free">free（無料）</option>
+                        <option value="nbs">nbs（NBS会員）</option>
+                        <option value="suspended">suspended（停止）</option>
+                        <option value="cancelled">cancelled（解約）</option>
+                      </select>
+                    </div>
+                    <div className="mt-3">
+                      <p className="text-xs text-[#7b7682]">ステータス変更</p>
                       <select
                         value={member.status}
                         onChange={(e) =>
                           changeStatus(member.id, e.target.value as MemberStatus)
                         }
-                        className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm"
+                        className="mt-1 h-10 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm"
                       >
                         <option>契約中</option>
                         <option>停止中</option>

@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { logError, logEvent } from "@/lib/logger";
+import { supabase } from "@/lib/supabase";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -23,6 +24,7 @@ type DiagnosisInfo = {
 };
 
 type RequestBody = {
+  memberId?: string;
   title?: string;
   text?: string;
   category?: "写メ日記" | "オキニトーク" | "SNS";
@@ -60,6 +62,25 @@ const industryHintMap: Record<string, string> = {
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as RequestBody;
+
+    // 回数制限チェック（consume_free_usageで原子的に処理）
+    const memberId = body.memberId;
+    if (memberId) {
+      const { data: usage, error: rpcError } = await supabase
+        .rpc("consume_free_usage", { p_member_id: Number(memberId) });
+
+      if (rpcError) {
+        logError("consume_usage_error", "回数消費RPCでエラー", { message: rpcError.message }, String(memberId));
+      } else if (usage && !usage.ok) {
+        return NextResponse.json(
+          {
+            error: "limit_exceeded",
+            message: "無料体験の3回を使い切りました。NBSに入会すると無制限で使えます。",
+          },
+          { status: 429 }
+        );
+      }
+    }
 
     const title = body.title?.trim() ?? "";
     const text = body.text?.trim() ?? "";
@@ -308,7 +329,7 @@ ${outputFormat}`;
 
     const parsed = JSON.parse(content);
 
-    logEvent("analyze_success", undefined, {
+    logEvent("analyze_success", memberId ?? undefined, {
       category,
       industry,
       bodyScore: parsed.bodyScore,

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import PlanLimitModal from "@/components/PlanLimitModal";
 
 type Category = "写メ日記" | "オキニトーク" | "SNS";
 type OkiniPurpose = "初来店の促し" | "再来店の促し";
@@ -457,6 +458,7 @@ export default function NewPostPage() {
   const [profile, setProfile] = useState<SavedProfile | null>(null);
   const [savedNotice, setSavedNotice] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   const [drafts, setDrafts] = useState<SavedDraftResult[]>([]);
   const [outcomes, setOutcomes] = useState<OutcomeMap>({});
@@ -1003,10 +1005,14 @@ ${successLine}
           }
         : undefined;
 
+      const rawUser = localStorage.getItem("yorushokuCurrentUser");
+      const currentUserId = rawUser ? JSON.parse(rawUser).id : undefined;
+
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          memberId: currentUserId,
           title: category === "写メ日記" ? title : undefined,
           text,
           category,
@@ -1031,11 +1037,16 @@ ${successLine}
         }),
       });
 
-      if (!res.ok) {
-        throw new Error(`API error: ${res.status}`);
+      const data = await res.json();
+
+      if (res.status === 429 && data.error === "limit_exceeded") {
+        setShowLimitModal(true);
+        return;
       }
 
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? `API error: ${res.status}`);
+      }
 
       if (data.error) {
         throw new Error(data.error);
@@ -1067,8 +1078,20 @@ ${successLine}
     }
   }
 
+  const currentUserId = (() => {
+    if (typeof window === "undefined") return undefined;
+    const raw = localStorage.getItem("yorushokuCurrentUser");
+    return raw ? JSON.parse(raw).id : undefined;
+  })();
+
   return (
     <main className="min-h-screen bg-[#f6f4f7] px-4 py-8 text-[#1f1f23] sm:px-6 lg:px-8">
+      {showLimitModal && currentUserId && (
+        <PlanLimitModal
+          memberId={currentUserId}
+          onClose={() => setShowLimitModal(false)}
+        />
+      )}
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
           <p className="text-sm font-medium text-[#a3476b]">新規添削</p>

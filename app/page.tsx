@@ -145,7 +145,7 @@ export default function Home() {
                 承認済み会員専用ページ
               </h2>
               <p className="mt-3 text-sm leading-6 text-[#6b6773]">
-                管理者から発行されたアカウントでログインしてください。
+                アカウントをお持ちの方はこちらからログインしてください。
               </p>
             </div>
 
@@ -213,6 +213,13 @@ export default function Home() {
                 {loading ? "確認中…" : "ログインする"}
               </button>
             </form>
+
+            <p className="mt-5 text-center text-sm text-[#7b7682]">
+              初めての方は{" "}
+              <a href="/signup" className="font-medium text-[#a3476b] hover:underline">
+                無料登録（3回無料）
+              </a>
+            </p>
 
             <div className="mt-8 rounded-2xl bg-[#f8f4f7] p-4">
               <p className="text-sm font-semibold text-[#2e2a3b]">
