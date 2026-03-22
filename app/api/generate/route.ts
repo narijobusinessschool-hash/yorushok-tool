@@ -31,6 +31,7 @@ type DiagnosisInfo = {
 
 type RequestBody = {
   memberId?: string;
+  mode?: "generate_body";
   title?: string;
   text?: string;
   category?: "写メ日記" | "オキニトーク" | "SNS";
@@ -98,6 +99,60 @@ export async function POST(req: Request) {
         .eq("id", Number(memberId))
         .single();
       if (memberData?.plan === "nbs") model = "gpt-4o";
+    }
+
+    if (body.mode === "generate_body") {
+      // Style analysis from learning examples
+      const styleExamples = [
+        ...(body.goodBodies ?? []).slice(0, 5),
+        ...(body.learningExamples ?? []).slice(0, 3).map((e: LearningExample) => e.body),
+      ].filter(Boolean);
+
+      const styleText = styleExamples.length > 0
+        ? styleExamples.map((b, i) => `【文体例${i + 1}】\n${b}`).join("\n\n")
+        : "なし";
+
+      const categoryCtx = body.category === "オキニトーク"
+        ? `目的: ${body.okiniPurpose || "指定なし"}、関係性: ${body.relationshipLevel || "指定なし"}、温度感: ${body.interestLevel || "指定なし"}、相手タイプ: ${body.partnerType || "指定なし"}、送る時間帯: ${body.sendTime || "指定なし"}`
+        : `狙いたい感情: ${body.emotionTarget || "指定なし"}、目的: ${body.purpose || "指定なし"}、売り別: ${body.sellType || "共通"}`;
+
+      const diagText = body.diagnosisInfo?.typeName
+        ? `診断タイプ: ${body.diagnosisInfo.typeName}\n強み: ${body.diagnosisInfo.strengths ?? ""}\nターゲット: ${body.diagnosisInfo.bestTarget ?? ""}`
+        : "";
+
+      const genSystemPrompt = `あなたは夜職業界に特化した文章のプロです。ユーザーの過去の文体・語尾・絵文字の使い方を分析し、その人らしい自然な文章を生成してください。`;
+
+      const genUserPrompt = `以下のユーザーの過去の文章例を参考に、カテゴリ「${body.category ?? "写メ日記"}」の本文を1つ生成してください。
+添削ではなく、ゼロから新しい文章を作成してください。
+
+## ユーザーの文体・語尾・絵文字の癖（これを必ず踏襲すること）
+${styleText}
+
+## 生成条件
+${categoryCtx}
+${diagText ? `\n## 診断情報\n${diagText}` : ""}
+${body.industry ? `\n## 業種\n${body.industry}` : ""}
+
+## 指示
+- 上記の文体例から語尾・絵文字・句読点の使い方・改行パターンを分析して踏襲すること
+- 読んだ人が「会いに行きたい」と自然に思える文章にする
+- 営業感・売り込み感を出さない
+- そのままコピペして使える完成形で出力する
+- JSON形式で返すこと: {"generatedBody": "<生成した本文>"}`;
+
+      const genRes = await client.chat.completions.create({
+        model,
+        temperature: 0.85,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: genSystemPrompt },
+          { role: "user", content: genUserPrompt },
+        ],
+      });
+
+      const genContent = genRes.choices[0]?.message?.content ?? "{}";
+      const genJson = JSON.parse(genContent);
+      return NextResponse.json({ generatedBody: genJson.generatedBody ?? "" });
     }
 
     const title = body.title?.trim() ?? "";

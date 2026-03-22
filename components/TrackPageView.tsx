@@ -8,11 +8,14 @@ export default function TrackPageView() {
 
   useEffect(() => {
     const raw = localStorage.getItem("yorushokuCurrentUser");
-    const userId = raw ? JSON.parse(raw).id : null;
+    if (!raw) return;
+    const user = JSON.parse(raw);
+    // 管理者はカウントから除外
+    if (user?.role === "管理者") return;
     fetch("/api/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: pathname, userId }),
+      body: JSON.stringify({ path: pathname, userId: user.id }),
     }).catch(() => {});
   }, [pathname]);
 

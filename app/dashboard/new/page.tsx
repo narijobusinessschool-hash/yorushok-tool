@@ -489,21 +489,21 @@ export default function NewPostPage() {
   const [category, setCategory] = useState<Category>("写メ日記");
 
   const [title, setTitle] = useState("");
-  const [emotionTarget, setEmotionTarget] = useState<EmotionTarget>("癒し");
+  const [emotionTarget, setEmotionTarget] = useState<EmotionTarget | "">("");
   const [shameNikkiGoal, setShameNikkiGoal] =
-    useState<ShameNikkiGoal>("アクセス増");
-  const [sellType, setSellType] = useState<SellType>("共通");
+    useState<ShameNikkiGoal | "">("");
+  const [sellType, setSellType] = useState<SellType | "">("");
 
   const [text, setText] = useState("");
 
   const [okiniPurpose, setOkiniPurpose] =
-    useState<OkiniPurpose>("初来店の促し");
+    useState<OkiniPurpose | "">("");
   const [relationshipLevel, setRelationshipLevel] =
-    useState<RelationshipLevel>("初めてやり取り");
-  const [interestLevel, setInterestLevel] = useState<InterestLevel>("中");
+    useState<RelationshipLevel | "">("");
+  const [interestLevel, setInterestLevel] = useState<InterestLevel | "">("");
   const [softSalesTone, setSoftSalesTone] = useState(true);
-  const [partnerType, setPartnerType] = useState<OkiniPartnerType>("忙しい");
-  const [sendTime, setSendTime] = useState<SendTime>("夜");
+  const [partnerType, setPartnerType] = useState<OkiniPartnerType | "">("");
+  const [sendTime, setSendTime] = useState<SendTime | "">("");
 
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [copiedKey, setCopiedKey] = useState("");
@@ -511,6 +511,7 @@ export default function NewPostPage() {
   const [profile, setProfile] = useState<SavedProfile | null>(null);
   const [savedNotice, setSavedNotice] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isGeneratingBody, setIsGeneratingBody] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
 
   const [drafts, setDrafts] = useState<SavedDraftResult[]>([]);
@@ -761,13 +762,13 @@ export default function NewPostPage() {
           ]
         : [];
 
-    const sellTypeAdditions = sellType !== "共通" ? sellTypeTitleMap[sellType] : [];
+    const sellTypeAdditions = sellType && sellType !== "共通" ? sellTypeTitleMap[sellType as SellType] : [];
 
     return [...successBoost, ...sellTypeAdditions, ...industrySpecific, ...positioningAdditions, ...base];
   }
 
   function generateAiTitle() {
-    const templates = getTitleTemplates(emotionTarget, shameNikkiGoal);
+    const templates = getTitleTemplates(emotionTarget as EmotionTarget || "癒し", shameNikkiGoal as ShameNikkiGoal || "アクセス増");
     const selected =
       templates[Math.floor(Math.random() * templates.length)] ||
       "少し甘えたい夜って、誰かに会いたくならない？";
@@ -777,7 +778,7 @@ export default function NewPostPage() {
   }
 
   function buildTitleSuggestions() {
-    const templates = getTitleTemplates(emotionTarget, shameNikkiGoal);
+    const templates = getTitleTemplates(emotionTarget as EmotionTarget || "癒し", shameNikkiGoal as ShameNikkiGoal || "アクセス増");
     const unique = Array.from(new Set(templates));
 
     const scored = unique.map((item) => {
@@ -787,7 +788,7 @@ export default function NewPostPage() {
       if (approvedPatterns[`industry:${profile?.basic.industry || ""}`]) score += 3;
       if (
         profile?.basic.industry &&
-        industrySpecificTitleMap[profile.basic.industry]?.[emotionTarget]?.includes(item)
+        emotionTarget && industrySpecificTitleMap[profile.basic.industry]?.[emotionTarget as EmotionTarget]?.includes(item)
       ) {
         score += 4;
       }
@@ -1034,6 +1035,52 @@ ${successLine}
     setTimeout(() => setSavedNotice(""), 1800);
   }
 
+  async function handleGenerateBody() {
+    setIsGeneratingBody(true);
+    try {
+      const rawUser = localStorage.getItem("yorushokuCurrentUser");
+      const currentUser = rawUser ? JSON.parse(rawUser) : null;
+      const goodBodiesRaw = localStorage.getItem("yorushokuGoodBodies");
+      const goodBodiesData = goodBodiesRaw ? JSON.parse(goodBodiesRaw) : [];
+      const learningExamplesRaw = localStorage.getItem("yorushokuLearningExamples");
+      const learningExamplesData = learningExamplesRaw ? JSON.parse(learningExamplesRaw) : [];
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "generate_body",
+          memberId: currentUser?.id,
+          category,
+          purpose: category === "写メ日記" ? shameNikkiGoal : undefined,
+          emotionTarget: category === "写メ日記" ? emotionTarget : undefined,
+          sellType: category === "写メ日記" ? sellType : undefined,
+          okiniPurpose: category === "オキニトーク" ? okiniPurpose : undefined,
+          relationshipLevel: category === "オキニトーク" ? relationshipLevel : undefined,
+          interestLevel: category === "オキニトーク" ? interestLevel : undefined,
+          partnerType: category === "オキニトーク" ? partnerType : undefined,
+          sendTime: category === "オキニトーク" ? sendTime : undefined,
+          industry: profile?.basic.industry,
+          diagnosisInfo: profile ? {
+            typeName: profile.diagnosis.typeName,
+            bestTarget: profile.diagnosis.bestTarget,
+            strengths: profile.diagnosis.strengths,
+          } : undefined,
+          goodBodies: goodBodiesData,
+          learningExamples: learningExamplesData,
+        }),
+      });
+      const json = await res.json();
+      if (json.generatedBody) {
+        setText(json.generatedBody);
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setIsGeneratingBody(false);
+    }
+  }
+
   async function handleAnalyze() {
     setIsAiLoading(true);
     try {
@@ -1196,10 +1243,11 @@ ${successLine}
                       <select
                         value={emotionTarget}
                         onChange={(e) =>
-                          setEmotionTarget(e.target.value as EmotionTarget)
+                          setEmotionTarget(e.target.value as EmotionTarget | "")
                         }
                         className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                       >
+                        <option value="">選択しない</option>
                         <option>癒し</option>
                         <option>疑似恋愛</option>
                         <option>特別感</option>
@@ -1215,10 +1263,11 @@ ${successLine}
                       <select
                         value={shameNikkiGoal}
                         onChange={(e) =>
-                          setShameNikkiGoal(e.target.value as ShameNikkiGoal)
+                          setShameNikkiGoal(e.target.value as ShameNikkiGoal | "")
                         }
                         className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                       >
+                        <option value="">選択しない</option>
                         <option>アクセス増</option>
                         <option>予約増</option>
                         <option>本指名増</option>
@@ -1232,9 +1281,10 @@ ${successLine}
                     </label>
                     <select
                       value={sellType}
-                      onChange={(e) => setSellType(e.target.value as SellType)}
+                      onChange={(e) => setSellType(e.target.value as SellType | "")}
                       className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                     >
+                      <option value="">選択しない</option>
                       <option>共通</option>
                       <option>M売り</option>
                       <option>S売り</option>
@@ -1284,10 +1334,11 @@ ${successLine}
                     <select
                       value={okiniPurpose}
                       onChange={(e) =>
-                        setOkiniPurpose(e.target.value as OkiniPurpose)
+                        setOkiniPurpose(e.target.value as OkiniPurpose | "")
                       }
                       className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                     >
+                      <option value="">選択しない</option>
                       <option>初来店の促し</option>
                       <option>再来店の促し</option>
                     </select>
@@ -1302,11 +1353,12 @@ ${successLine}
                         value={relationshipLevel}
                         onChange={(e) =>
                           setRelationshipLevel(
-                            e.target.value as RelationshipLevel
+                            e.target.value as RelationshipLevel | ""
                           )
                         }
                         className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                       >
+                        <option value="">選択しない</option>
                         <option>初めてやり取り</option>
                         <option>1回会った</option>
                         <option>リピート中</option>
@@ -1320,10 +1372,11 @@ ${successLine}
                       <select
                         value={interestLevel}
                         onChange={(e) =>
-                          setInterestLevel(e.target.value as InterestLevel)
+                          setInterestLevel(e.target.value as InterestLevel | "")
                         }
                         className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                       >
+                        <option value="">選択しない</option>
                         <option>低</option>
                         <option>中</option>
                         <option>高</option>
@@ -1339,10 +1392,11 @@ ${successLine}
                       <select
                         value={partnerType}
                         onChange={(e) =>
-                          setPartnerType(e.target.value as OkiniPartnerType)
+                          setPartnerType(e.target.value as OkiniPartnerType | "")
                         }
                         className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                       >
+                        <option value="">選択しない</option>
                         <option>忙しい</option>
                         <option>マメじゃない</option>
                         <option>甘えたい</option>
@@ -1357,10 +1411,11 @@ ${successLine}
                       <select
                         value={sendTime}
                         onChange={(e) =>
-                          setSendTime(e.target.value as SendTime)
+                          setSendTime(e.target.value as SendTime | "")
                         }
                         className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                       >
+                        <option value="">選択しない</option>
                         <option>昼</option>
                         <option>夜</option>
                         <option>深夜</option>
@@ -1385,10 +1440,21 @@ ${successLine}
                 </>
               )}
 
-              <div className="mb-6">
-                <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
+              <div className="mb-3 flex items-center justify-between">
+                <label className="text-sm font-medium text-[#c8c2dc]">
                   {category === "オキニトーク" ? "本文（送る文章）" : "本文"}
                 </label>
+                <button
+                  type="button"
+                  onClick={handleGenerateBody}
+                  disabled={isGeneratingBody}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#1a1420] border border-[#2f2a45] px-3 py-1.5 text-xs font-semibold text-[#e85d8a] transition hover:border-[#e85d8a]/50 disabled:opacity-50"
+                >
+                  {isGeneratingBody ? "生成中…" : "✦ AIで本文を生成"}
+                </button>
+              </div>
+
+              <div className="mb-6">
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
