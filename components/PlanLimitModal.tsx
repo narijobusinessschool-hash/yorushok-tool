@@ -7,7 +7,6 @@ const PAYMENT_URL = process.env.NEXT_PUBLIC_PAYMENT_URL ?? "https://getsugaku-pa
 
 type ScoreHistory = {
   bodyScore: number;
-  titleScore: number | null;
   createdAt: string;
 };
 
@@ -22,7 +21,7 @@ export default function PlanLimitModal({ memberId, onClose }: Props) {
   useEffect(() => {
     supabase
       .from("draft_results")
-      .select("body_score, title_score, created_at")
+      .select("body_score, created_at")
       .eq("member_id", memberId)
       .order("created_at", { ascending: true })
       .limit(3)
@@ -31,7 +30,6 @@ export default function PlanLimitModal({ memberId, onClose }: Props) {
           setHistory(
             data.map((d) => ({
               bodyScore: d.body_score ?? 0,
-              titleScore: d.title_score ?? null,
               createdAt: d.created_at,
             }))
           );
@@ -54,8 +52,7 @@ export default function PlanLimitModal({ memberId, onClose }: Props) {
             <div className="mt-3 space-y-1">
               {history.map((h, i) => (
                 <p key={i} className="text-sm text-[#5d5965]">
-                  {i + 1}回目：本文 {h.bodyScore}点
-                  {h.titleScore !== null ? `  /  タイトル ${h.titleScore}点` : ""}
+                  {i + 1}回目：本文スコア {h.bodyScore}点
                 </p>
               ))}
             </div>

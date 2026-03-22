@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import UsageCounter from "@/components/UsageCounter";
 
 type DraftRow = {
   id: string;
@@ -25,12 +26,14 @@ export default function DashboardPage() {
   const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [outcomes, setOutcomes] = useState<OutcomeRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       const rawUser = localStorage.getItem("yorushokuCurrentUser");
       if (!rawUser) { setLoading(false); return; }
       const currentUser = JSON.parse(rawUser);
+      setCurrentUserId(String(currentUser.id));
 
       const [{ data: allDrafts }, { data: allOutcomes }] = await Promise.all([
         supabase
@@ -99,6 +102,12 @@ export default function DashboardPage() {
             新しく添削する
           </a>
         </header>
+
+        {currentUserId && (
+          <div className="mb-6">
+            <UsageCounter memberId={currentUserId} />
+          </div>
+        )}
 
         <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-[#ebe7ef]">
