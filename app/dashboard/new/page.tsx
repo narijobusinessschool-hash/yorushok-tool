@@ -1120,9 +1120,9 @@ ${successLine}
 
       setResult(nextResult);
       await persistResult(nextResult);
-      const rawUser = localStorage.getItem("yorushokuCurrentUser");
-      const plan = rawUser ? (JSON.parse(rawUser).plan ?? "free") : "free";
-      gaGenerateDraft({ category, bodyScore: nextResult.bodyScore, plan, sellType });
+      const gaUserRaw = localStorage.getItem("yorushokuCurrentUser");
+      const gaPlan = gaUserRaw ? (JSON.parse(gaUserRaw).plan ?? "free") : "free";
+      gaGenerateDraft({ category, bodyScore: nextResult.bodyScore, plan: gaPlan, sellType });
     } catch (err) {
       console.error("AI添削エラー:", err);
       const raw = localStorage.getItem("yorushokuCurrentUser");
