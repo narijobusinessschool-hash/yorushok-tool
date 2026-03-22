@@ -2,7 +2,6 @@ import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { logError, logEvent } from "@/lib/logger";
-import { supabase } from "@/lib/supabase";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -68,35 +67,56 @@ const industryHintMap: Record<string, string> = {
 };
 
 export async function POST(req: Request) {
+  let memberInfo: { plan: string; usage_count: number; usage_limit: number; usage_permission: boolean } | null = null;
+
   try {
     const body = (await req.json()) as RequestBody;
-
-    // 回数制限チェック（consume_free_usageで原子的に処理）
     const memberId = body.memberId;
-    if (memberId) {
-      const { data: usage, error: rpcError } = await supabase
-        .rpc("consume_free_usage", { p_member_id: Number(memberId) });
+    const isGenerateBody = body.mode === "generate_body";
 
-      if (rpcError) {
-        logError("consume_usage_error", "回数消費RPCでエラー", { message: rpcError.message }, String(memberId));
-      } else if (usage && !usage.ok) {
-        return NextResponse.json(
-          {
-            error: "limit_exceeded",
-            message: "今月の無料添削10回を使い切りました。NBSに入会すると無制限で使えます。",
-          },
-          { status: 429 }
-        );
+    // Usage check: skip for generate_body mode
+    if (memberId && !isGenerateBody) {
+      const { data: member, error: memberError } = await supabaseAdmin
+        .from("members")
+        .select("plan, usage_count, usage_limit, usage_permission")
+        .eq("id", memberId)
+        .single();
+
+      if (memberError) {
+        logError("consume_usage_error", "会員情報取得でエラー", { message: memberError.message }, String(memberId));
+      } else {
+        memberInfo = member;
+
+        if (member && !member.usage_permission) {
+          return NextResponse.json(
+            { error: "permission_denied", message: "現在ご利用が停止されています。管理者にお問い合わせください。" },
+            { status: 403 }
+          );
+        }
+
+        if (member && member.plan !== "nbs") {
+          const count = member.usage_count ?? 0;
+          const limit = member.usage_limit ?? 10;
+          if (count >= limit) {
+            return NextResponse.json(
+              { error: "limit_exceeded", message: "今月の無料添削回数を使い切りました。NBSに入会すると無制限で使えます。" },
+              { status: 429 }
+            );
+          }
+        }
       }
     }
 
-    // プランを取得してモデルを決定（NBS=gpt-4o、free=gpt-4o-mini）
+    // Determine model based on plan
     let model = "gpt-4o-mini";
-    if (memberId) {
+    if (memberInfo?.plan === "nbs") {
+      model = "gpt-4o";
+    } else if (memberId && !memberInfo) {
+      // Fallback plan check if memberInfo wasn't set (generate_body mode or memberError case)
       const { data: memberData } = await supabaseAdmin
         .from("members")
         .select("plan")
-        .eq("id", Number(memberId))
+        .eq("id", memberId)
         .single();
       if (memberData?.plan === "nbs") model = "gpt-4o";
     }
@@ -152,7 +172,7 @@ export async function POST(req: Request) {
       approvedPatternSuggestions = goodPatterns.map((p) => p.meta?.pattern as string).filter(Boolean);
     }
 
-    if (body.mode === "generate_body") {
+    if (isGenerateBody) {
       // Style analysis from learning examples
       const styleExamples = [
         ...(body.goodBodies ?? []).slice(0, 5),
@@ -203,6 +223,7 @@ ${body.industry ? `\n## 業種\n${body.industry}` : ""}
 
       const genContent = genRes.choices[0]?.message?.content ?? "{}";
       const genJson = JSON.parse(genContent);
+      // generate_body does NOT increment usage count
       return NextResponse.json({ generatedBody: genJson.generatedBody ?? "" });
     }
 
@@ -494,21 +515,44 @@ ${outputFormat}`;
 
     const parsed = JSON.parse(content);
 
+    // AFTER successful AI response: increment usage count + save to draft_results
+    if (memberId && !isGenerateBody) {
+      // Increment usage count (free plan only)
+      if (memberInfo && memberInfo.plan !== "nbs") {
+        await supabaseAdmin
+          .from("members")
+          .update({ usage_count: (memberInfo.usage_count ?? 0) + 1 })
+          .eq("id", memberId);
+      }
+
+      // Save to draft_results for AI learning accumulation
+      const draftId = crypto.randomUUID();
+      await supabaseAdmin.from("draft_results").insert({
+        id: draftId,
+        member_id: memberId,
+        category,
+        title: title || "",
+        original_text: text || "",
+        improved_text: parsed.bodyImproved ?? "",
+        title_score: parsed.titleScore ?? null,
+        body_score: parsed.bodyScore ?? 0,
+        industry: industry || "",
+        purpose: (category === "写メ日記" ? body.purpose : body.okiniPurpose) ?? "",
+        status: "下書き",
+      }).then(() => {}).catch(() => {}); // Non-blocking, client-side also saves
+    }
+
     logEvent("analyze_success", memberId ?? undefined, {
       category,
-      industry,
       bodyScore: parsed.bodyScore,
       titleScore: parsed.titleScore,
     });
 
     return NextResponse.json(parsed);
   } catch (error) {
+    // Usage NOT consumed when AI call fails
     console.error("OpenAI API error:", error);
     logError("api_generate_error", "添削APIでエラーが発生", { message: String(error) });
-
-    return NextResponse.json(
-      { error: "API接続中にエラーが発生しました。" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "AI添削に失敗しました。もう一度お試しください。" }, { status: 500 });
   }
 }

@@ -1227,6 +1227,12 @@ ${successLine}
         return;
       }
 
+      if (res.status === 403) {
+        setSavedNotice("ご利用が停止されています。管理者にお問い合わせください。");
+        setTimeout(() => setSavedNotice(""), 5000);
+        return;
+      }
+
       if (!res.ok) {
         throw new Error(data.error ?? `API error: ${res.status}`);
       }
@@ -1237,7 +1243,7 @@ ${successLine}
 
       const nextResult: AnalysisResult = {
         titleScore: data.titleScore ?? undefined,
-        bodyScore: data.bodyScore ?? 50,
+        bodyScore: data.bodyScore ?? 0,
         titleComment: data.titleComment ?? undefined,
         bodyComment: data.bodyComment ?? "",
         titleSuggestions: data.titleSuggestions ?? [],
@@ -1257,8 +1263,9 @@ ${successLine}
       void import("@/lib/logger").then(({ logError }) =>
         logError("analyze_failed", "AI添削でエラーが発生", { message: String(err) }, uid)
       );
-      setSavedNotice("AI添削でエラーが発生しました。もう一度お試しください。");
-      setTimeout(() => setSavedNotice(""), 3000);
+      const errMsg = err instanceof Error ? err.message : "AI添削でエラーが発生しました。";
+      setSavedNotice(`⚠ ${errMsg} もう一度お試しください。`);
+      setTimeout(() => setSavedNotice(""), 6000);
     } finally {
       setIsAiLoading(false);
     }
@@ -1282,10 +1289,10 @@ ${successLine}
         <div className="mb-8">
           <p className="text-sm font-medium text-[#e85d8a]">新規添削</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-            診断結果と承認済み成功パターンを反映して文章を添削する
+            AI添削・本文生成
           </h1>
           <p className="mt-3 text-sm leading-7 text-[#8b84a8] sm:text-base">
-            診断結果に加え、管理画面で採用したパターンだけを学習反映します。
+            診断結果・高スコア文章・実際に使った文章を学習して、そのまま使える文章を生成します。
           </p>
           {savedNotice && (
             <p className="mt-3 text-sm font-medium text-[#e85d8a]">{savedNotice}</p>
@@ -1387,9 +1394,18 @@ ${successLine}
                   </div>
 
                   <div className="mb-5">
-                    <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
-                      タイトル
-                    </label>
+                    <div className="mb-2 flex items-center justify-between">
+                      <label className="text-sm font-medium text-[#c8c2dc]">タイトル</label>
+                      {title && (
+                        <button
+                          type="button"
+                          onClick={() => copyText(title, "title-input")}
+                          className="text-xs font-medium text-[#8b84a8] transition hover:text-[#e85d8a]"
+                        >
+                          {copiedKey === "title-input" ? "コピー完了 ✓" : "コピーする"}
+                        </button>
+                      )}
+                    </div>
                     <input
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
@@ -1545,6 +1561,17 @@ ${successLine}
                   }
                   className="min-h-[160px] w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 py-3 text-[#f2eefb] placeholder-[#4d4866] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20 sm:min-h-[220px]"
                 />
+                {text && (
+                  <div className="mt-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => copyText(text, "body-input")}
+                      className="text-xs font-medium text-[#8b84a8] transition hover:text-[#e85d8a]"
+                    >
+                      {copiedKey === "body-input" ? "コピー完了 ✓" : "本文をコピーする"}
+                    </button>
+                  </div>
+                )}
               </div>
 
               <button
@@ -1615,12 +1642,12 @@ ${successLine}
 
                 {result?.titleSuggestions ? (
                   <>
-                    <p className="mt-4 text-sm leading-7 text-[#5b5661]">
+                    <p className="mt-4 text-sm leading-7 text-[#8b84a8]">
                       {result.titleComment}
                     </p>
 
                     <div className="mt-5">
-                      <p className="text-sm font-semibold text-[#2e2a3b]">タイトル候補</p>
+                      <p className="text-sm font-semibold text-[#c8c2dc]">タイトル候補</p>
                       <div className="mt-3 space-y-3">
                         {result.titleSuggestions.map((item, index) => (
                           <div
@@ -1628,12 +1655,12 @@ ${successLine}
                             className="rounded-2xl border border-[#2f2a45] bg-[#0e0c18] p-4"
                           >
                             <div className="flex items-center justify-between gap-3">
-                              <p className="text-sm font-semibold text-[#2e2a3b]">案 {index + 1}</p>
+                              <p className="text-sm font-semibold text-[#c8c2dc]">案 {index + 1}</p>
                               <span className="text-xs font-semibold text-[#e85d8a]">
                                 {item.score}点
                               </span>
                             </div>
-                            <p className="mt-2 text-sm leading-7 text-[#5b5661]">{item.text}</p>
+                            <p className="mt-2 text-sm leading-7 text-[#f2eefb]">{item.text}</p>
                             <div className="mt-3 flex flex-wrap gap-2">
                               <button
                                 type="button"
@@ -1675,11 +1702,11 @@ ${successLine}
 
               {result ? (
                 <>
-                  <p className="mt-4 text-sm leading-7 text-[#5b5661]">{result.bodyComment}</p>
+                  <p className="mt-4 text-sm leading-7 text-[#8b84a8]">{result.bodyComment}</p>
 
                   <div className="mt-5">
-                    <p className="text-sm font-semibold text-[#2e2a3b]">改善ポイント</p>
-                    <ul className="mt-3 space-y-2 text-sm leading-7 text-[#5b5661]">
+                    <p className="text-sm font-semibold text-[#c8c2dc]">改善ポイント</p>
+                    <ul className="mt-3 space-y-2 text-sm leading-7 text-[#8b84a8]">
                       {result.bodyAdvice.map((item, index) => (
                         <li key={`${item}-${index}`}>・{item}</li>
                       ))}
@@ -1687,11 +1714,11 @@ ${successLine}
                   </div>
 
                   <div className="mt-5">
-                    <p className="text-sm font-semibold text-[#2e2a3b]">
+                    <p className="text-sm font-semibold text-[#c8c2dc]">
                       {category === "オキニトーク" ? "提案メッセージ" : "添削後の本文"}
                     </p>
                     <div className="mt-3 rounded-2xl border border-[#2f2a45] bg-[#0e0c18] p-4">
-                      <pre className="whitespace-pre-wrap text-sm leading-7 text-[#5b5661]">
+                      <pre className="whitespace-pre-wrap text-sm leading-7 text-[#f2eefb]">
                         {result.bodyImproved}
                       </pre>
                     </div>
@@ -1699,9 +1726,9 @@ ${successLine}
                     <button
                       type="button"
                       onClick={() => copyText(result.bodyImproved, "body-result", true)}
-                      className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-[#e85d8a] px-4 text-sm font-semibold text-white transition hover:bg-[#d4507c]"
+                      className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-xl bg-[#e85d8a] px-4 text-sm font-semibold text-white transition hover:bg-[#d4507c]"
                     >
-                      {copiedKey === "body-result" ? "コピー完了" : "本文をコピーする"}
+                      {copiedKey === "body-result" ? "✓ コピー完了" : "📋 添削後の本文をコピーする"}
                     </button>
                   </div>
                 </>
