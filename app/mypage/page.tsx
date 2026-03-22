@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type SavedProfile = {
@@ -44,8 +45,22 @@ type SavedProfile = {
   updatedAt: string;
 };
 
+// 学習データのキー（削除しない）
+const KEEP_KEYS = new Set([
+  "yorushokuCurrentUser",
+  "yorushokuSavedLogin",
+  "yorushokuPersonaProfile",
+  "yorushokuApprovedPatterns",
+  "yorushokuGoodTitles",
+  "yorushokuGoodBodies",
+  "yorushokuLearningConfig",
+  "yorushokuLearningExamples",
+]);
+
 export default function MyPage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<SavedProfile | null>(null);
+  const [cacheCleared, setCacheCleared] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -86,6 +101,18 @@ export default function MyPage() {
     }
     loadProfile();
   }, []);
+
+  function handleCacheClear() {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && !KEEP_KEYS.has(key)) keysToRemove.push(key);
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+    router.refresh();
+    setCacheCleared(true);
+    setTimeout(() => setCacheCleared(false), 3000);
+  }
 
   async function handlePasswordChange(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -257,6 +284,20 @@ export default function MyPage() {
             >
               診断をやり直す
             </a>
+
+            {/* キャッシュクリア */}
+            <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef]">
+              <p className="text-sm font-medium text-[#a3476b]">キャッシュクリア</p>
+              <p className="mt-2 text-xs leading-5 text-[#9b92a4]">
+                サイトの動作が重いと感じたときにお使いください。学習データは削除されません。
+              </p>
+              <button
+                onClick={handleCacheClear}
+                className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-2xl border border-[#ddd7e1] bg-white text-sm font-medium text-[#66616d] transition hover:bg-[#faf8fb] hover:text-[#2c2933]"
+              >
+                {cacheCleared ? "クリアしました ✓" : "キャッシュをクリアする"}
+              </button>
+            </div>
 
             {/* パスワード変更 */}
             <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef]">

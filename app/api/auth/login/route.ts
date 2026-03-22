@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      user: { id: data.id, name: data.name ?? "", email: data.email, role: data.role },
+      user: { id: data.id, name: data.name ?? "", email: data.email, role: data.role, plan: data.plan ?? "free" },
     });
   } catch {
     return NextResponse.json({ error: "ログイン処理中にエラーが発生しました。" }, { status: 500 });
