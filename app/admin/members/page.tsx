@@ -292,7 +292,7 @@ export default function AdminMembersPage() {
         status: "契約中",
         plan: newPlan,
         usage_count: 0,
-        usage_limit: newPlan === "nbs" ? 99999 : 3,
+        usage_limit: newPlan === "nbs" ? 99999 : 10,
         usage_permission: true,
         note: newNote.trim(),
       })
