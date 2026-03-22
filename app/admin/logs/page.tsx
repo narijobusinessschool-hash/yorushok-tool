@@ -326,9 +326,9 @@ export default function AdminLogsPage() {
                             </div>
                             {e.meta && (
                               <div className="mt-2 flex flex-wrap gap-3 text-xs text-[#7b7682]">
-                                {e.meta.field && <span>フィールド: {e.meta.field as string}</span>}
-                                {e.meta.value !== undefined && <span>値: {String(e.meta.value)}</span>}
-                                {e.meta.targetMemberId && <span className="font-mono text-[#9b92a4]">ID: {(e.meta.targetMemberId as string).slice(0, 8)}…</span>}
+                                {e.meta.field != null && <span>フィールド: {String(e.meta.field)}</span>}
+                                {e.meta.value != null && <span>値: {String(e.meta.value)}</span>}
+                                {e.meta.targetMemberId != null && <span className="font-mono text-[#9b92a4]">ID: {String(e.meta.targetMemberId).slice(0, 8)}…</span>}
                               </div>
                             )}
                           </div>

@@ -539,7 +539,7 @@ ${outputFormat}`;
         industry: industry || "",
         purpose: (category === "写メ日記" ? body.purpose : body.okiniPurpose) ?? "",
         status: "下書き",
-      }).then(() => {}).catch(() => {}); // Non-blocking, client-side also saves
+      }).then(undefined, () => {}); // Non-blocking, client-side also saves
     }
 
     logEvent("analyze_success", memberId ?? undefined, {
