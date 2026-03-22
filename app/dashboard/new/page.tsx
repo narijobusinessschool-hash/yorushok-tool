@@ -1592,12 +1592,13 @@ ${successLine}
             )}
 
             <div className="rounded-[28px] border border-[#231f36] bg-[#110e1c] p-6">
-              <p className="text-sm font-medium text-[#e85d8a]">承認済み学習パターン</p>
+              <p className="text-sm font-medium text-[#e85d8a]">AI学習状況</p>
               <div className="mt-4 space-y-3 text-sm text-[#5d5965]">
                 <p>・{successInsight.successRateText}</p>
                 <p>・承認済み一致：{successInsight.approvedMatches.length > 0 ? successInsight.approvedMatches.join(" / ") : "なし"}</p>
                 <p>・全体で強い業種：{successInsight.topIndustry}</p>
                 <p>・全体で強いカテゴリ：{successInsight.topCategory}</p>
+                <p className="mt-3 text-xs leading-5 text-[#4d4866]">※ 高スコア文章・コピーされた文章も自動学習されます</p>
                 <p>・全体で強い目的：{successInsight.topPurpose}</p>
                 <p>・全体で強いスコア帯：{successInsight.topScoreBand}</p>
               </div>

@@ -153,6 +153,9 @@ export default function AdminPage() {
   // OpenAI残高
   const [openAiBilling, setOpenAiBilling] = useState<{ remainingUsd: number; usedUsd: number; isAlert: boolean } | null>(null);
 
+  // システム状態
+  const [systemStatus, setSystemStatus] = useState<{ dbOk: boolean; openaiOk: boolean; resendOk: boolean } | null>(null);
+
   // 学習データ
   const [goodTitles, setGoodTitles] = useState<string[]>([]);
   const [goodBodies, setGoodBodies] = useState<string[]>([]);
@@ -213,6 +216,14 @@ export default function AdminPage() {
     fetch("/api/admin/openai-billing")
       .then((r) => r.json())
       .then((d) => { if (d.remainingUsd !== undefined) setOpenAiBilling(d); })
+      .catch(() => {});
+  }, []);
+
+  // システム状態取得
+  useEffect(() => {
+    fetch("/api/admin/system-status")
+      .then((r) => r.json())
+      .then(setSystemStatus)
       .catch(() => {});
   }, []);
 
@@ -849,17 +860,33 @@ export default function AdminPage() {
                 <p>・診断結果保存：稼働中</p>
                 <p>・添削履歴保存：稼働中</p>
                 <p>・成果入力保存：稼働中</p>
-                <p>・成功パターン承認：稼働中</p>
+                <p>・AI自動学習：稼働中（高スコア＋コピー文章を自動取得）</p>
                 <p>・会員一覧UI：稼働中</p>
-                <p>・DB接続：未実装</p>
+                {systemStatus === null ? (
+                  <p>・DB接続：確認中…</p>
+                ) : (
+                  <p className={systemStatus.dbOk ? "text-[#1f7a43]" : "text-[#e85d8a]"}>
+                    ・DB接続：{systemStatus.dbOk ? "稼働中 ✓" : "エラー ✗"}
+                  </p>
+                )}
+                {systemStatus && (
+                  <p className={systemStatus.openaiOk ? "text-[#1f7a43]" : "text-[#e85d8a]"}>
+                    ・OpenAI API：{systemStatus.openaiOk ? "設定済み ✓" : "未設定 ✗"}
+                  </p>
+                )}
+                {systemStatus && (
+                  <p className={systemStatus.resendOk ? "text-[#1f7a43]" : "text-[#8b84a8]"}>
+                    ・メール通知：{systemStatus.resendOk ? "設定済み ✓" : "未設定（任意）"}
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef]">
               <p className="text-sm font-medium text-[#a3476b]">運用メモ</p>
               <div className="mt-4 space-y-3 text-sm leading-7 text-[#5d5965]">
-                <p>・採用したパターンだけが添削画面に反映されます。</p>
-                <p>・成功件数が少ない段階では、採用を絞ると安定します。</p>
+                <p>・AIはスコア70点以上の文章・コピーされた文章を自動学習します。使い続けるほど精度が上がります。</p>
+                <p>・管理者の参考例・承認パターンは追加学習データとして統合されます。</p>
                 <p>・会員一覧ページから利用停止や会員追加が行えます。</p>
               </div>
             </div>
