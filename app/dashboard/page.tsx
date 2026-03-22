@@ -52,7 +52,6 @@ export default function DashboardPage() {
       setOutcomes(allOutcomes ?? []);
       setLoading(false);
 
-      // localStorageにない場合は移行チェック（フォールバック）
       if (!allDrafts || allDrafts.length === 0) {
         const raw = localStorage.getItem("yorushokuDraftResults");
         if (raw) setDrafts(JSON.parse(raw).map((d: {
@@ -71,7 +70,6 @@ export default function DashboardPage() {
   const thisMonthDrafts = drafts.filter(
     (d) => new Date(d.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   );
-  const usedCount = outcomes.filter((o) => o.used === "使った").length;
   const successCount = outcomes.filter(
     (o) => o.reservation === "あり" || o.nomination === "あり" || o.visit === "あり"
   ).length;
@@ -82,111 +80,119 @@ export default function DashboardPage() {
 
   const recentDrafts = drafts.slice(0, 5);
 
+  const stats = [
+    { label: "今月の添削", value: loading ? "…" : String(thisMonthDrafts.length), unit: "回" },
+    { label: "成果あり", value: loading ? "…" : String(successCount), unit: "件" },
+    { label: "平均スコア", value: loading ? "…" : avgScore > 0 ? String(avgScore) : "–", unit: avgScore > 0 ? "点" : "" },
+  ];
+
+  const actions = [
+    { title: "添削する", desc: "写メ日記・オキニトークを添削", href: "/dashboard/new", primary: true },
+    { title: "成果を記録", desc: "使った文章の反応を入力", href: "/dashboard/results", primary: false },
+    { title: "マイページ", desc: "診断結果やUSPを確認", href: "/mypage", primary: false },
+  ];
+
   return (
-    <main className="min-h-screen bg-[#f6f4f7] px-4 py-8 text-[#1f1f23] sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-8 flex flex-col gap-4 rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef] sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-[#a3476b]">ダッシュボード</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight">
-              今日の文章を整えましょう
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-[#66616d]">
-              添削、履歴確認、成果入力、診断結果の確認をここから行えます。
-            </p>
-          </div>
-          <a
-            href="/dashboard/new"
-            className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#a3476b] px-6 text-sm font-semibold text-white transition hover:bg-[#8c3c5b]"
-          >
-            新しく添削する
-          </a>
+    <main className="min-h-screen bg-[#09070f] px-4 pb-24 pt-8 text-[#f2eefb] sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-2xl">
+
+        {/* ヘッダー */}
+        <header className="mb-6">
+          <p className="text-xs font-semibold tracking-widest text-[#e85d8a] uppercase">Dashboard</p>
+          <h1 className="mt-2 text-2xl font-bold sm:text-3xl">今日の文章を整えよう</h1>
         </header>
 
+        {/* 使用回数カウンター（freeプランのみ表示） */}
         {currentUserId && (
           <div className="mb-6">
             <UsageCounter memberId={currentUserId} />
           </div>
         )}
 
-        <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-[#ebe7ef]">
-            <p className="text-sm text-[#66616d]">今月の添削回数</p>
-            <p className="mt-3 text-3xl font-bold">{loading ? "…" : thisMonthDrafts.length}</p>
+        {/* メインCTAボタン */}
+        <a
+          href="/dashboard/new"
+          className="mb-6 flex items-center justify-between rounded-[20px] bg-[#e85d8a] px-6 py-5 transition active:scale-[0.98] hover:bg-[#d4507c]"
+        >
+          <div>
+            <p className="text-sm font-semibold text-white/80">今すぐ始める</p>
+            <p className="mt-0.5 text-lg font-bold text-white">写メ日記・オキニトークを添削する</p>
           </div>
-          <div className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-[#ebe7ef]">
-            <p className="text-sm text-[#66616d]">使用回数</p>
-            <p className="mt-3 text-3xl font-bold">{loading ? "…" : usedCount}</p>
-          </div>
-          <div className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-[#ebe7ef]">
-            <p className="text-sm text-[#66616d]">成果あり件数</p>
-            <p className="mt-3 text-3xl font-bold">{loading ? "…" : successCount}</p>
-          </div>
-          <div className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-[#ebe7ef]">
-            <p className="text-sm text-[#66616d]">平均スコア</p>
-            <p className="mt-3 text-3xl font-bold">{loading ? "…" : avgScore > 0 ? `${avgScore}点` : "–"}</p>
-          </div>
-        </section>
+          <span className="text-2xl text-white/80">→</span>
+        </a>
 
-        <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {[
-            { title: "新しく添削する", description: "掲載予定の文章を入力して、予約導線を強化します。", href: "/dashboard/new" },
-            { title: "成果を記録する", description: "使った文章の反応を入力して、提案精度を高めます。", href: "/dashboard/results" },
-            { title: "マイページを見る", description: "診断結果やUSP・STPの整理内容をいつでも見返せます。", href: "/mypage" },
-          ].map((action) => (
+        {/* スタッツ */}
+        <div className="mb-6 grid grid-cols-3 gap-3">
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-[16px] border border-[#231f36] bg-[#110e1c] p-4">
+              <p className="text-[11px] text-[#8b84a8]">{s.label}</p>
+              <p className="mt-2 text-2xl font-bold">
+                {s.value}
+                <span className="ml-0.5 text-sm font-normal text-[#8b84a8]">{s.unit}</span>
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* サブアクション */}
+        <div className="mb-6 grid grid-cols-2 gap-3">
+          {actions.slice(1).map((action) => (
             <a
               key={action.title}
               href={action.href}
-              className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef] transition hover:-translate-y-0.5 hover:shadow-md"
+              className="rounded-[16px] border border-[#231f36] bg-[#110e1c] p-4 transition hover:border-[#3d3760] active:scale-[0.98]"
             >
-              <h2 className="text-xl font-bold">{action.title}</h2>
-              <p className="mt-3 text-sm leading-7 text-[#66616d]">{action.description}</p>
+              <p className="font-bold">{action.title}</p>
+              <p className="mt-1 text-xs leading-5 text-[#8b84a8]">{action.desc}</p>
             </a>
           ))}
-        </section>
+        </div>
 
-        <section className="mt-6 rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef]">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-xl font-bold">最近の添削履歴</h2>
-            <a href="/dashboard/results" className="text-sm font-medium text-[#7a2e4d] hover:opacity-80">
+        {/* 最近の履歴 */}
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-bold">最近の添削履歴</h2>
+            <a href="/dashboard/results" className="text-sm text-[#e85d8a] hover:underline">
               すべて見る
             </a>
           </div>
-          <div className="space-y-4">
-            {loading ? (
-              <p className="text-sm text-[#66616d]">読み込み中…</p>
-            ) : recentDrafts.length > 0 ? (
-              recentDrafts.map((item) => (
-                <div key={item.id} className="rounded-[24px] border border-[#ece7ef] bg-[#fcfbfd] p-5">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="rounded-full bg-[#f4e2ea] px-3 py-1 text-xs font-semibold text-[#7a2e4d]">
+
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 animate-pulse rounded-[16px] bg-[#110e1c]" />
+              ))}
+            </div>
+          ) : recentDrafts.length > 0 ? (
+            <div className="space-y-3">
+              {recentDrafts.map((item) => (
+                <div key={item.id} className="rounded-[16px] border border-[#231f36] bg-[#110e1c] p-4">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-[#2a1420] px-2.5 py-0.5 text-xs font-semibold text-[#e85d8a]">
                       {item.category}
                     </span>
-                    <span className="rounded-full bg-[#f1eff4] px-3 py-1 text-xs font-semibold text-[#4d4855]">
-                      {item.status}
-                    </span>
-                    <span className="text-sm font-semibold text-[#2e2a3b]">{item.body_score}点</span>
-                    <span className="ml-auto text-xs text-[#9b92a4]">
+                    <span className="text-sm font-bold text-[#e85d8a]">{item.body_score}点</span>
+                    <span className="ml-auto text-xs text-[#4d4866]">
                       {new Date(item.created_at).toLocaleDateString("ja-JP")}
                     </span>
                   </div>
                   {item.title && (
-                    <p className="mt-3 text-sm font-bold text-[#2c2933]">{item.title}</p>
+                    <p className="mt-2 text-sm font-semibold text-[#f2eefb]">{item.title}</p>
                   )}
-                  <p className="mt-2 line-clamp-2 text-sm leading-7 text-[#585460]">
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#8b84a8]">
                     {item.improved_text}
                   </p>
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-[#66616d]">
-                まだ添削履歴がありません。
-                <a href="/dashboard/new" className="ml-1 font-semibold text-[#a3476b]">
-                  最初の添削をはじめる
-                </a>
-              </p>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-[16px] border border-[#231f36] bg-[#110e1c] p-6 text-center">
+              <p className="text-sm text-[#8b84a8]">まだ添削履歴がありません。</p>
+              <a href="/dashboard/new" className="mt-2 inline-block text-sm font-semibold text-[#e85d8a]">
+                最初の添削をはじめる →
+              </a>
+            </div>
+          )}
         </section>
       </div>
     </main>

@@ -29,7 +29,6 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      // メール重複チェック
       const { data: existing } = await supabase
         .from("members")
         .select("id")
@@ -41,7 +40,6 @@ export default function SignupPage() {
         return;
       }
 
-      // 新規会員登録（フリープラン）
       const { data, error: insertError } = await supabase
         .from("members")
         .insert({
@@ -63,7 +61,6 @@ export default function SignupPage() {
         return;
       }
 
-      // 自動ログイン
       const userData = { id: data.id, name: data.name ?? "", email: data.email, role: data.role };
       localStorage.setItem("yorushokuCurrentUser", JSON.stringify(userData));
       document.cookie = `yorushoku_session=${encodeURIComponent(JSON.stringify({ role: data.role }))}; path=/; max-age=86400`;
@@ -77,24 +74,48 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f4f7] text-[#1f1f23]">
-      <div className="mx-auto flex min-h-screen max-w-7xl items-center justify-center px-6 py-10">
-        <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-[0_12px_40px_rgba(31,31,35,0.08)] ring-1 ring-[#ebe7ef] sm:p-8">
-          <div>
-            <p className="text-sm font-medium text-[#a3476b]">無料で始める</p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight">
-              写メ日記をAIが無料で添削
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-[#6b6773]">
-              メール登録だけで今すぐ使えます。クレジットカード不要。
-              <br />
-              無料で3回まで添削できます。
-            </p>
+    <main className="min-h-screen bg-[#09070f] text-[#f2eefb]">
+      <div className="mx-auto flex min-h-screen max-w-lg flex-col px-5 py-10 sm:py-16">
+
+        {/* ブランド */}
+        <div className="mb-10">
+          <a href="/" className="inline-flex items-center gap-2 text-[#8b84a8] text-sm hover:text-[#f2eefb] transition">
+            ← ログインページへ
+          </a>
+          <h1 className="mt-6 text-[2rem] font-bold leading-tight tracking-tight">
+            まず、無料で試す。
+          </h1>
+          <p className="mt-3 text-[#8b84a8] leading-7">
+            クレジットカード不要。メール登録だけで今すぐ使えます。
+          </p>
+
+          {/* 特典リスト */}
+          <div className="mt-6 space-y-3">
+            {[
+              { icon: "✦", text: "写メ日記・オキニトークをAIが添削" },
+              { icon: "✦", text: "100点満点スコアで改善ポイントが一目瞭然" },
+              { icon: "✦", text: "添削後の文章はそのままコピーして使える" },
+            ].map((item) => (
+              <div key={item.text} className="flex items-start gap-3">
+                <span className="mt-0.5 text-[#e85d8a] text-sm">{item.icon}</span>
+                <span className="text-sm text-[#c8c2dc]">{item.text}</span>
+              </div>
+            ))}
           </div>
 
-          <form onSubmit={handleSignup} className="mt-8 space-y-5">
+          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#3d1429] bg-[#1e0a12] px-4 py-2">
+            <span className="text-xs font-bold text-[#e85d8a]">無料 3回</span>
+            <span className="text-xs text-[#8b84a8]">使い切ったら月額9,800円で無制限に</span>
+          </div>
+        </div>
+
+        {/* 登録フォーム */}
+        <div className="rounded-[24px] border border-[#231f36] bg-[#110e1c] p-6 sm:p-8">
+          <h2 className="text-lg font-bold">新規登録</h2>
+
+          <form onSubmit={handleSignup} className="mt-6 space-y-4">
             <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-medium text-[#2c2933]">
+              <label htmlFor="email" className="mb-2 block text-sm font-medium text-[#c8c2dc]">
                 メールアドレス
               </label>
               <input
@@ -104,12 +125,12 @@ export default function SignupPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="example@gmail.com"
                 required
-                className="h-12 w-full rounded-2xl border border-[#d9d3df] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                className="w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 py-3.5 text-[#f2eefb] placeholder-[#4d4866] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="mb-2 block text-sm font-medium text-[#2c2933]">
+              <label htmlFor="password" className="mb-2 block text-sm font-medium text-[#c8c2dc]">
                 パスワード（8文字以上）
               </label>
               <input
@@ -119,12 +140,12 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="h-12 w-full rounded-2xl border border-[#d9d3df] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                className="w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 py-3.5 text-[#f2eefb] placeholder-[#4d4866] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
               />
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="mb-2 block text-sm font-medium text-[#2c2933]">
+              <label htmlFor="confirmPassword" className="mb-2 block text-sm font-medium text-[#c8c2dc]">
                 パスワード（確認）
               </label>
               <input
@@ -134,32 +155,32 @@ export default function SignupPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="h-12 w-full rounded-2xl border border-[#d9d3df] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                className="w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 py-3.5 text-[#f2eefb] placeholder-[#4d4866] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
               />
             </div>
 
             {error && (
-              <p className="rounded-xl bg-[#fdf0f4] px-4 py-3 text-sm text-[#b03060]">
+              <div className="rounded-xl border border-[#5c1a2e] bg-[#1e0a12] px-4 py-3 text-sm text-[#f87171]">
                 {error}
-              </p>
+              </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[#a3476b] text-sm font-semibold text-white transition hover:bg-[#8c3c5b] disabled:cursor-not-allowed disabled:bg-[#d2afbe]"
+              className="mt-2 inline-flex w-full items-center justify-center rounded-2xl bg-[#e85d8a] py-3.5 text-sm font-bold text-white transition hover:bg-[#d4507c] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? "登録中…" : "無料で登録してツールを使う"}
+              {loading ? "登録中…" : "無料で登録してツールを使う →"}
             </button>
           </form>
-
-          <p className="mt-6 text-center text-sm text-[#7b7682]">
-            すでにアカウントをお持ちの方は{" "}
-            <a href="/" className="font-medium text-[#a3476b] hover:underline">
-              ログイン
-            </a>
-          </p>
         </div>
+
+        <p className="mt-6 text-center text-sm text-[#8b84a8]">
+          すでにアカウントをお持ちの方は{" "}
+          <a href="/" className="font-semibold text-[#e85d8a] hover:underline">
+            ログイン
+          </a>
+        </p>
       </div>
     </main>
   );

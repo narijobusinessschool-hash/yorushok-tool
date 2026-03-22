@@ -29,11 +29,11 @@ export default function UsageCounter({ memberId }: Props) {
       });
   }, [memberId]);
 
-  // nbs会員には表示しない
   if (plan === null || plan === "nbs") return null;
 
   const remaining = usageLimit - usageCount;
   const isAtLimit = remaining <= 0;
+  const pct = Math.min((usageCount / usageLimit) * 100, 100);
 
   return (
     <>
@@ -41,49 +41,42 @@ export default function UsageCounter({ memberId }: Props) {
         <PlanLimitModal memberId={memberId} onClose={() => setShowModal(false)} />
       )}
 
-      <div
-        className={`rounded-[20px] p-4 ring-1 ${
+      <button
+        type="button"
+        onClick={() => setShowModal(true)}
+        className={`w-full rounded-[16px] border p-4 text-left transition active:scale-[0.98] ${
           isAtLimit
-            ? "bg-[#fdf0f4] ring-[#f4c6d4]"
-            : remaining === 1
-            ? "bg-[#fff8ec] ring-[#f5d898]"
-            : "bg-[#f1eff4] ring-[#ddd7e1]"
+            ? "border-[#5c1a2e] bg-[#1e0a12]"
+            : "border-[#231f36] bg-[#110e1c] hover:border-[#3d3760]"
         }`}
       >
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-[#2c2933]">
-              {isAtLimit ? "無料体験の上限に達しました" : `無料添削 あと ${remaining} 回`}
+            <p className={`text-sm font-semibold ${isAtLimit ? "text-[#f87171]" : "text-[#f2eefb]"}`}>
+              {isAtLimit ? "無料添削の上限に達しました" : `無料添削 あと ${remaining} 回使えます`}
             </p>
-            <p className="mt-1 text-xs text-[#7b7682]">
+            <p className="mt-0.5 text-xs text-[#8b84a8]">
               {isAtLimit
-                ? "NBSに入会すると無制限で使えます。"
+                ? "NBSに入会すると無制限で使えます → タップで詳細"
                 : `${usageCount}/${usageLimit}回使用済み`}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowModal(true)}
-            className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition ${
-              isAtLimit
-                ? "bg-[#a3476b] text-white hover:bg-[#8c3c5b]"
-                : "bg-white text-[#a3476b] ring-1 ring-[#d2a3b6] hover:bg-[#fdf0f4]"
-            }`}
-          >
-            {isAtLimit ? "今すぐ入会 →" : "NBSとは？"}
-          </button>
+          <span className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold ${
+            isAtLimit ? "bg-[#e85d8a] text-white" : "border border-[#2f2a45] text-[#e85d8a]"
+          }`}>
+            {isAtLimit ? "入会する" : "詳細"}
+          </span>
         </div>
 
-        {/* プログレスバー */}
         {!isAtLimit && (
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#e8e3ec]">
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#231f36]">
             <div
-              className="h-full rounded-full bg-[#a3476b] transition-all"
-              style={{ width: `${(usageCount / usageLimit) * 100}%` }}
+              className="h-full rounded-full bg-[#e85d8a] transition-all"
+              style={{ width: `${pct}%` }}
             />
           </div>
         )}
-      </div>
+      </button>
     </>
   );
 }

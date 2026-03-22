@@ -46,19 +46,16 @@ export default function Home() {
       }
 
       if (data.status === "停止中") {
-        logError("login_blocked", "停止中アカウントのログイン試行", { user_id: data.id });
         setError("このアカウントは現在利用停止中です。管理者にお問い合わせください。");
         return;
       }
 
       if (data.status === "解約") {
-        logError("login_blocked", "解約済みアカウントのログイン試行", { user_id: data.id });
         setError("このアカウントは解約済みです。管理者にお問い合わせください。");
         return;
       }
 
       if (!data.usage_permission) {
-        logError("login_blocked", "利用制限アカウントのログイン試行", { user_id: data.id });
         setError("現在このアカウントの利用が制限されています。管理者にお問い合わせください。");
         return;
       }
@@ -67,7 +64,6 @@ export default function Home() {
       localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userData));
       logEvent("login_success", data.id, { role: data.role });
 
-      // ミドルウェア用Cookieをセット（24時間）
       document.cookie = `yorushoku_session=${encodeURIComponent(JSON.stringify({ role: data.role }))}; path=/; max-age=86400`;
 
       if (rememberMe) {
@@ -91,149 +87,103 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f4f7] text-[#1f1f23]">
-      <div className="mx-auto grid min-h-screen max-w-7xl grid-cols-1 lg:grid-cols-2">
-        <section className="flex flex-col justify-between px-6 py-10 sm:px-10 lg:px-16 lg:py-14">
-          <div>
-            <div className="inline-flex items-center rounded-full border border-[#d9d3df] bg-white px-4 py-2 text-sm font-medium text-[#7a2e4d] shadow-sm">
-              会員制 AI 文章添削ツール
-            </div>
+    <main className="min-h-screen bg-[#09070f] text-[#f2eefb]">
+      <div className="mx-auto flex min-h-screen max-w-lg flex-col px-5 py-10 sm:py-16">
 
-            <div className="mt-10 max-w-xl">
-              <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-                売れる文章は、
-                <br />
-                才能ではなく
-                <br />
-                設計で決まる。
-              </h1>
+        {/* ブランド */}
+        <div className="mb-10">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#2f2a45] bg-[#1a1420] px-4 py-1.5 text-xs font-semibold text-[#e85d8a]">
+            ✦ NBS AI 文章添削ツール
+          </span>
+          <h1 className="mt-6 text-[2rem] font-bold leading-tight tracking-tight sm:text-5xl">
+            指名が増える文章を、<br />
+            AIが設計する。
+          </h1>
+          <p className="mt-4 text-[#8b84a8] leading-7">
+            写メ日記・オキニトークをプロ水準に仕上げ、<br />
+            毎月の指名・来店数を底上げします。
+          </p>
 
-              <p className="mt-6 text-base leading-8 text-[#5b5864] sm:text-lg">
-                写メ日記・オキニトーク・SNS投稿を、
-                予約・来店・指名に繋がる形へ。
-                あなたのキャラ設定、ターゲット、USPに合わせて
-                最適な文章提案を行います。
-              </p>
-            </div>
-
-            <div className="mt-10 grid max-w-xl grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[#e7e2ea]">
-                <p className="text-sm text-[#6a6572]">対応カテゴリ</p>
-                <p className="mt-2 text-lg font-semibold">写メ日記 / オキニ</p>
-              </div>
-              <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[#e7e2ea]">
-                <p className="text-sm text-[#6a6572]">分析軸</p>
-                <p className="mt-2 text-lg font-semibold">共感 / 集客 / 指名</p>
-              </div>
-              <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[#e7e2ea]">
-                <p className="text-sm text-[#6a6572]">利用形式</p>
-                <p className="mt-2 text-lg font-semibold">承認制会員のみ</p>
-              </div>
-            </div>
+          <div className="mt-6 flex flex-wrap gap-3">
+            {["100点スコア評価", "添削文章をそのままコピー", "指名導線を自動設計"].map((f) => (
+              <span key={f} className="rounded-full border border-[#2f2a45] px-3 py-1 text-xs text-[#8b84a8]">
+                {f}
+              </span>
+            ))}
           </div>
+        </div>
 
-          <div className="mt-10 text-sm text-[#7b7682]">
-            予約に繋がる文章設計を、毎日の投稿に。
-          </div>
-        </section>
+        {/* ログインフォーム */}
+        <div className="rounded-[24px] border border-[#231f36] bg-[#110e1c] p-6 sm:p-8">
+          <h2 className="text-lg font-bold">ログイン</h2>
 
-        <section className="flex items-center justify-center px-6 py-10 sm:px-10 lg:px-16">
-          <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-[0_12px_40px_rgba(31,31,35,0.08)] ring-1 ring-[#ebe7ef] sm:p-8">
+          <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div>
-              <p className="text-sm font-medium text-[#a3476b]">ログイン</p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight">
-                承認済み会員専用ページ
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-[#6b6773]">
-                アカウントをお持ちの方はこちらからログインしてください。
-              </p>
+              <label htmlFor="email" className="mb-2 block text-sm font-medium text-[#c8c2dc]">
+                メールアドレス
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="example@gmail.com"
+                required
+                className="h-13 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 py-3.5 text-[#f2eefb] placeholder-[#4d4866] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
+              />
             </div>
 
-            <form onSubmit={handleLogin} className="mt-8 space-y-5">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="mb-2 block text-sm font-medium text-[#2c2933]"
-                >
-                  メールアドレス
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="example@gmail.com"
-                  required
-                  className="h-12 w-full rounded-2xl border border-[#d9d3df] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="password"
-                  className="mb-2 block text-sm font-medium text-[#2c2933]"
-                >
-                  パスワード
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="h-12 w-full rounded-2xl border border-[#d9d3df] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  id="rememberMe"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-[#d9d3df] accent-[#a3476b]"
-                />
-                <label htmlFor="rememberMe" className="text-sm text-[#5b5864]">
-                  ログイン情報を保存する
-                </label>
-              </div>
-
-              {error && (
-                <p className="rounded-xl bg-[#fdf0f4] px-4 py-3 text-sm text-[#b03060]">
-                  {error}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[#a3476b] text-sm font-semibold text-white transition hover:bg-[#8c3c5b] disabled:cursor-not-allowed disabled:bg-[#d2afbe]"
-              >
-                {loading ? "確認中…" : "ログインする"}
-              </button>
-            </form>
-
-            <p className="mt-5 text-center text-sm text-[#7b7682]">
-              初めての方は{" "}
-              <a href="/signup" className="font-medium text-[#a3476b] hover:underline">
-                無料登録（3回無料）
-              </a>
-            </p>
-
-            <div className="mt-8 rounded-2xl bg-[#f8f4f7] p-4">
-              <p className="text-sm font-semibold text-[#2e2a3b]">
-                このツールでできること
-              </p>
-              <ul className="mt-3 space-y-2 text-sm leading-6 text-[#66616d]">
-                <li>・文章の100点評価</li>
-                <li>・予約導線を意識した添削提案</li>
-                <li>・履歴保存と成果記録</li>
-                <li>・ターゲット別の文章最適化</li>
-              </ul>
+            <div>
+              <label htmlFor="password" className="mb-2 block text-sm font-medium text-[#c8c2dc]">
+                パスワード
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                className="h-13 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 py-3.5 text-[#f2eefb] placeholder-[#4d4866] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
+              />
             </div>
-          </div>
-        </section>
+
+            <div className="flex items-center gap-2">
+              <input
+                id="rememberMe"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-[#2f2a45] accent-[#e85d8a]"
+              />
+              <label htmlFor="rememberMe" className="text-sm text-[#8b84a8]">
+                ログイン情報を保存する
+              </label>
+            </div>
+
+            {error && (
+              <div className="rounded-xl border border-[#5c1a2e] bg-[#1e0a12] px-4 py-3 text-sm text-[#f87171]">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-2 inline-flex h-13 w-full items-center justify-center rounded-2xl bg-[#e85d8a] py-3.5 text-sm font-bold text-white transition hover:bg-[#d4507c] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? "確認中…" : "ログインする"}
+            </button>
+          </form>
+        </div>
+
+        {/* サインアップ */}
+        <p className="mt-6 text-center text-sm text-[#8b84a8]">
+          まだアカウントをお持ちでない方は{" "}
+          <a href="/signup" className="font-semibold text-[#e85d8a] hover:underline">
+            無料で3回試す →
+          </a>
+        </p>
       </div>
     </main>
   );

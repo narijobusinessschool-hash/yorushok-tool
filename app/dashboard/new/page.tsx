@@ -1085,7 +1085,7 @@ ${successLine}
   })();
 
   return (
-    <main className="min-h-screen bg-[#f6f4f7] px-4 py-8 text-[#1f1f23] sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#09070f] px-4 py-8 text-[#f2eefb] sm:px-6 lg:px-8">
       {showLimitModal && currentUserId && (
         <PlanLimitModal
           memberId={currentUserId}
@@ -1094,23 +1094,23 @@ ${successLine}
       )}
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
-          <p className="text-sm font-medium text-[#a3476b]">新規添削</p>
+          <p className="text-sm font-medium text-[#e85d8a]">新規添削</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
             診断結果と承認済み成功パターンを反映して文章を添削する
           </h1>
-          <p className="mt-3 text-sm leading-7 text-[#66616d] sm:text-base">
+          <p className="mt-3 text-sm leading-7 text-[#8b84a8] sm:text-base">
             診断結果に加え、管理画面で採用したパターンだけを学習反映します。
           </p>
           {savedNotice && (
-            <p className="mt-3 text-sm font-medium text-[#7a2e4d]">{savedNotice}</p>
+            <p className="mt-3 text-sm font-medium text-[#e85d8a]">{savedNotice}</p>
           )}
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
           <section className="xl:col-span-7">
-            <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef] sm:p-8">
+            <div className="rounded-[28px] border border-[#231f36] bg-[#110e1c] p-6 sm:p-8">
               <div className="mb-5">
-                <label className="mb-2 block text-sm font-medium text-[#2c2933]">
+                <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
                   カテゴリ
                 </label>
                 <select
@@ -1119,7 +1119,7 @@ ${successLine}
                     setCategory(e.target.value as Category);
                     setResult(null);
                   }}
-                  className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                  className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                 >
                   <option>写メ日記</option>
                   <option>オキニトーク</option>
@@ -1131,7 +1131,7 @@ ${successLine}
                 <>
                   <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-[#2c2933]">
+                      <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
                         狙いたい感情
                       </label>
                       <select
@@ -1139,7 +1139,7 @@ ${successLine}
                         onChange={(e) =>
                           setEmotionTarget(e.target.value as EmotionTarget)
                         }
-                        className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                        className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                       >
                         <option>癒し</option>
                         <option>疑似恋愛</option>
@@ -1150,7 +1150,7 @@ ${successLine}
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-[#2c2933]">
+                      <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
                         目的
                       </label>
                       <select
@@ -1158,7 +1158,7 @@ ${successLine}
                         onChange={(e) =>
                           setShameNikkiGoal(e.target.value as ShameNikkiGoal)
                         }
-                        className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                        className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                       >
                         <option>アクセス増</option>
                         <option>予約増</option>
@@ -1171,24 +1171,24 @@ ${successLine}
                     <button
                       type="button"
                       onClick={generateAiTitle}
-                      className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#a3476b] px-5 text-sm font-semibold text-white transition hover:bg-[#8c3c5b]"
+                      className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#e85d8a] px-5 text-sm font-semibold text-white transition hover:bg-[#d4507c]"
                     >
                       タイトルをAIで生成
                     </button>
                   </div>
 
                   <div className="mb-5">
-                    <label className="mb-2 block text-sm font-medium text-[#2c2933]">
+                    <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
                       タイトル
                     </label>
                     <input
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="例：少し甘えたい夜って、誰かに会いたくならない？"
-                      className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                      className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                     />
                     {generatedTitle && (
-                      <p className="mt-2 text-xs text-[#7a2e4d]">
+                      <p className="mt-2 text-xs text-[#e85d8a]">
                         生成タイトルを反映しました。必要ならそのまま編集できます。
                       </p>
                     )}
@@ -1199,7 +1199,7 @@ ${successLine}
               {category === "オキニトーク" && (
                 <>
                   <div className="mb-5">
-                    <label className="mb-2 block text-sm font-medium text-[#2c2933]">
+                    <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
                       目的
                     </label>
                     <select
@@ -1207,7 +1207,7 @@ ${successLine}
                       onChange={(e) =>
                         setOkiniPurpose(e.target.value as OkiniPurpose)
                       }
-                      className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                      className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                     >
                       <option>初来店の促し</option>
                       <option>再来店の促し</option>
@@ -1216,7 +1216,7 @@ ${successLine}
 
                   <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-[#2c2933]">
+                      <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
                         関係性レベル
                       </label>
                       <select
@@ -1226,7 +1226,7 @@ ${successLine}
                             e.target.value as RelationshipLevel
                           )
                         }
-                        className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                        className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                       >
                         <option>初めてやり取り</option>
                         <option>1回会った</option>
@@ -1235,7 +1235,7 @@ ${successLine}
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-[#2c2933]">
+                      <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
                         温度感
                       </label>
                       <select
@@ -1243,7 +1243,7 @@ ${successLine}
                         onChange={(e) =>
                           setInterestLevel(e.target.value as InterestLevel)
                         }
-                        className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                        className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                       >
                         <option>低</option>
                         <option>中</option>
@@ -1254,7 +1254,7 @@ ${successLine}
 
                   <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-[#2c2933]">
+                      <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
                         相手タイプ
                       </label>
                       <select
@@ -1262,7 +1262,7 @@ ${successLine}
                         onChange={(e) =>
                           setPartnerType(e.target.value as OkiniPartnerType)
                         }
-                        className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                        className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                       >
                         <option>忙しい</option>
                         <option>マメじゃない</option>
@@ -1272,7 +1272,7 @@ ${successLine}
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-[#2c2933]">
+                      <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
                         送る時間帯
                       </label>
                       <select
@@ -1280,7 +1280,7 @@ ${successLine}
                         onChange={(e) =>
                           setSendTime(e.target.value as SendTime)
                         }
-                        className="h-12 w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                        className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
                       >
                         <option>昼</option>
                         <option>夜</option>
@@ -1289,8 +1289,8 @@ ${successLine}
                     </div>
                   </div>
 
-                  <div className="mb-5 rounded-2xl border border-[#ece7ef] bg-[#fcfbfd] p-4">
-                    <label className="flex items-center gap-3 text-sm font-medium text-[#2c2933]">
+                  <div className="mb-5 rounded-2xl border border-[#2f2a45] bg-[#0e0c18] p-4">
+                    <label className="flex items-center gap-3 text-sm font-medium text-[#c8c2dc]">
                       <input
                         type="checkbox"
                         checked={softSalesTone}
@@ -1299,7 +1299,7 @@ ${successLine}
                       />
                       営業感をできるだけ消す
                     </label>
-                    <p className="mt-2 text-sm leading-6 text-[#66616d]">
+                    <p className="mt-2 text-sm leading-6 text-[#8b84a8]">
                       オンにすると、やわらかく自然な促し方を優先します。
                     </p>
                   </div>
@@ -1307,7 +1307,7 @@ ${successLine}
               )}
 
               <div className="mb-6">
-                <label className="mb-2 block text-sm font-medium text-[#2c2933]">
+                <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
                   {category === "オキニトーク" ? "本文（送る文章）" : "本文"}
                 </label>
                 <textarea
@@ -1318,14 +1318,14 @@ ${successLine}
                       ? "例：お仕事おつかれさま。最近ちゃんと休めてる？"
                       : "ここに本文を入力してください"
                   }
-                  className="min-h-[220px] w-full rounded-2xl border border-[#ddd7e1] bg-[#fcfbfd] px-4 py-3 text-sm outline-none transition focus:border-[#a3476b] focus:ring-2 focus:ring-[#f4e2ea]"
+                  className="min-h-[160px] w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 py-3 text-[#f2eefb] placeholder-[#4d4866] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20 sm:min-h-[220px]"
                 />
               </div>
 
               <button
                 onClick={handleAnalyze}
                 disabled={!canAnalyze || isAiLoading}
-                className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[#a3476b] text-sm font-semibold text-white transition hover:bg-[#8c3c5b] disabled:cursor-not-allowed disabled:bg-[#d2afbe]"
+                className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[#e85d8a] text-sm font-bold text-white transition hover:bg-[#d4507c] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {isAiLoading ? "AI添削中…" : "添削する"}
               </button>
@@ -1334,29 +1334,29 @@ ${successLine}
 
           <aside className="space-y-6 xl:col-span-5">
             {profile && (
-              <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef]">
-                <p className="text-sm font-medium text-[#a3476b]">診断結果を反映中</p>
+              <div className="rounded-[28px] border border-[#231f36] bg-[#110e1c] p-6">
+                <p className="text-sm font-medium text-[#e85d8a]">診断結果を反映中</p>
 
                 <div className="mt-4 space-y-4 text-sm text-[#5d5965]">
                   <div>
-                    <p className="font-semibold text-[#2c2933]">あなたは</p>
-                    <p className="mt-1 text-base font-bold text-[#7a2e4d]">
+                    <p className="font-semibold text-[#f2eefb]">あなたは</p>
+                    <p className="mt-1 text-base font-bold text-[#e85d8a]">
                       {profile.diagnosis.typeName}
                     </p>
                   </div>
 
                   <div>
-                    <p className="font-semibold text-[#2c2933]">狙うといい相手</p>
+                    <p className="font-semibold text-[#f2eefb]">狙うといい相手</p>
                     <p className="mt-1 leading-6">{profile.diagnosis.bestTarget}</p>
                   </div>
 
                   <div>
-                    <p className="font-semibold text-[#2c2933]">あなたの強み</p>
+                    <p className="font-semibold text-[#f2eefb]">あなたの強み</p>
                     <p className="mt-1 leading-6">{profile.diagnosis.strengths}</p>
                   </div>
 
                   <div>
-                    <p className="font-semibold text-[#2c2933]">業種 / 地域</p>
+                    <p className="font-semibold text-[#f2eefb]">業種 / 地域</p>
                     <p className="mt-1 leading-6">
                       {profile.basic.industry || "未設定"} /{" "}
                       {profile.basic.prefecture || "未設定"}
@@ -1366,8 +1366,8 @@ ${successLine}
               </div>
             )}
 
-            <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef]">
-              <p className="text-sm font-medium text-[#a3476b]">承認済み学習パターン</p>
+            <div className="rounded-[28px] border border-[#231f36] bg-[#110e1c] p-6">
+              <p className="text-sm font-medium text-[#e85d8a]">承認済み学習パターン</p>
               <div className="mt-4 space-y-3 text-sm text-[#5d5965]">
                 <p>・{successInsight.successRateText}</p>
                 <p>・承認済み一致：{successInsight.approvedMatches.length > 0 ? successInsight.approvedMatches.join(" / ") : "なし"}</p>
@@ -1379,10 +1379,10 @@ ${successLine}
             </div>
 
             {category === "写メ日記" && (
-              <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef]">
+              <div className="rounded-[28px] border border-[#231f36] bg-[#110e1c] p-6">
                 <div className="flex items-center justify-between gap-4">
-                  <p className="text-sm font-medium text-[#a3476b]">タイトル評価</p>
-                  <span className="rounded-full bg-[#f4e2ea] px-3 py-1 text-sm font-semibold text-[#7a2e4d]">
+                  <p className="text-sm font-medium text-[#e85d8a]">タイトル評価</p>
+                  <span className="rounded-full bg-[#2a1420] px-3 py-1 text-sm font-semibold text-[#e85d8a]">
                     {result?.titleScore !== undefined ? `${result.titleScore}点` : "--点"}
                   </span>
                 </div>
@@ -1399,11 +1399,11 @@ ${successLine}
                         {result.titleSuggestions.map((item, index) => (
                           <div
                             key={`${item.text}-${index}`}
-                            className="rounded-2xl border border-[#ece7ef] bg-[#fcfbfd] p-4"
+                            className="rounded-2xl border border-[#2f2a45] bg-[#0e0c18] p-4"
                           >
                             <div className="flex items-center justify-between gap-3">
                               <p className="text-sm font-semibold text-[#2e2a3b]">案 {index + 1}</p>
-                              <span className="text-xs font-semibold text-[#7a2e4d]">
+                              <span className="text-xs font-semibold text-[#e85d8a]">
                                 {item.score}点
                               </span>
                             </div>
@@ -1412,14 +1412,14 @@ ${successLine}
                               <button
                                 type="button"
                                 onClick={() => setTitle(item.text)}
-                                className="inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933] transition hover:bg-[#faf8fb]"
+                                className="inline-flex h-10 items-center justify-center rounded-xl border border-[#2f2a45] bg-transparent px-4 text-sm font-medium text-[#8b84a8] transition hover:border-[#3d3760] hover:text-[#f2eefb]"
                               >
                                 タイトルに反映
                               </button>
                               <button
                                 type="button"
                                 onClick={() => copyText(item.text, `title-${index}`)}
-                                className="inline-flex h-10 items-center justify-center rounded-xl bg-[#a3476b] px-4 text-sm font-semibold text-white transition hover:bg-[#8c3c5b]"
+                                className="inline-flex h-10 items-center justify-center rounded-xl bg-[#e85d8a] px-4 text-sm font-semibold text-white transition hover:bg-[#d4507c]"
                               >
                                 {copiedKey === `title-${index}` ? "コピー完了" : "コピーする"}
                               </button>
@@ -1430,19 +1430,19 @@ ${successLine}
                     </div>
                   </>
                 ) : (
-                  <p className="mt-4 text-sm leading-7 text-[#66616d]">
+                  <p className="mt-4 text-sm leading-7 text-[#8b84a8]">
                     写メ日記では、タイトルの評価と候補がここに表示されます。
                   </p>
                 )}
               </div>
             )}
 
-            <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-[#ebe7ef]">
+            <div className="rounded-[28px] border border-[#231f36] bg-[#110e1c] p-6">
               <div className="flex items-center justify-between gap-4">
-                <p className="text-sm font-medium text-[#a3476b]">
+                <p className="text-sm font-medium text-[#e85d8a]">
                   {category === "オキニトーク" ? "営業メール評価" : "本文評価"}
                 </p>
-                <span className="rounded-full bg-[#f4e2ea] px-3 py-1 text-sm font-semibold text-[#7a2e4d]">
+                <span className="rounded-full bg-[#2a1420] px-3 py-1 text-sm font-semibold text-[#e85d8a]">
                   {result ? `${result.bodyScore}点` : "--点"}
                 </span>
               </div>
@@ -1464,7 +1464,7 @@ ${successLine}
                     <p className="text-sm font-semibold text-[#2e2a3b]">
                       {category === "オキニトーク" ? "提案メッセージ" : "添削後の本文"}
                     </p>
-                    <div className="mt-3 rounded-2xl border border-[#ece7ef] bg-[#fcfbfd] p-4">
+                    <div className="mt-3 rounded-2xl border border-[#2f2a45] bg-[#0e0c18] p-4">
                       <pre className="whitespace-pre-wrap text-sm leading-7 text-[#5b5661]">
                         {result.bodyImproved}
                       </pre>
@@ -1473,14 +1473,14 @@ ${successLine}
                     <button
                       type="button"
                       onClick={() => copyText(result.bodyImproved, "body-result")}
-                      className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-[#a3476b] px-4 text-sm font-semibold text-white transition hover:bg-[#8c3c5b]"
+                      className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-[#e85d8a] px-4 text-sm font-semibold text-white transition hover:bg-[#d4507c]"
                     >
                       {copiedKey === "body-result" ? "コピー完了" : "本文をコピーする"}
                     </button>
                   </div>
                 </>
               ) : (
-                <p className="mt-4 text-sm leading-7 text-[#66616d]">
+                <p className="mt-4 text-sm leading-7 text-[#8b84a8]">
                   カテゴリに応じた評価と改善案がここに表示されます。
                 </p>
               )}
