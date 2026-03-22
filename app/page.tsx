@@ -87,7 +87,7 @@ export default function Home() {
         {/* ブランド */}
         <div className="mb-10">
           <span className="inline-flex items-center gap-2 rounded-full border border-[#2f2a45] bg-[#1a1420] px-4 py-1.5 text-xs font-semibold text-[#e85d8a]">
-            ✦ NBS AI 文章添削ツール
+            ✦ シャメコーチ
           </span>
           <h1 className="mt-6 text-[2rem] font-bold leading-tight tracking-tight sm:text-5xl">
             指名が増える文章を、<br />

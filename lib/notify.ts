@@ -16,7 +16,7 @@ async function sendEmail(subject: string, html: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "よるしょく <onboarding@resend.dev>",
+        from: "シャメコーチ <onboarding@resend.dev>",
         to: ADMIN_EMAIL,
         subject,
         html,

@@ -1,0 +1,14 @@
+import { MetadataRoute } from "next";
+
+const BASE_URL = "https://yorushok-tool.vercel.app";
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: {
+      userAgent: "*",
+      allow: ["/", "/signup", "/terms", "/privacy", "/tokushoho"],
+      disallow: ["/admin", "/dashboard", "/api", "/onboarding", "/mypage"],
+    },
+    sitemap: `${BASE_URL}/sitemap.xml`,
+  };
+}

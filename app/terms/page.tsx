@@ -11,7 +11,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="mb-3 text-base font-bold text-[#f2eefb]">第1条（適用）</h2>
-            <p>本利用規約（以下「本規約」）は、NBS（Narijo Business School）が提供するAI文章添削ツール「yorushoku-tool」（以下「本サービス」）の利用条件を定めるものです。登録ユーザーの皆様には、本規約に従って本サービスをご利用いただきます。</p>
+            <p>本利用規約（以下「本規約」）は、NBS（Narijo Business School）が提供するAI文章添削ツール「シャメコーチ」（以下「本サービス」）の利用条件を定めるものです。登録ユーザーの皆様には、本規約に従って本サービスをご利用いただきます。</p>
           </section>
 
           <section>

@@ -19,13 +19,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "よるしょく | 写メ日記AI添削",
-  description: "夜職専用の写メ日記・オキニトークAI添削ツール。100点満点スコアで指名が変わる文章を設計する。",
+  title: "シャメコーチ | 写メ日記AI添削ツール",
+  description: "夜職専用の写メ日記・オキニトークAI添削ツール。100点満点スコアで指名が増える文章をAIが設計。シャメコーチで毎月の指名・来店数を底上げ。",
+  keywords: ["写メ日記 添削", "写メ日記 AI", "夜職 文章 AI", "指名 増やす", "写メ日記 コーチ", "シャメコーチ"],
   manifest: "/manifest.json",
+  openGraph: {
+    title: "シャメコーチ | 写メ日記AI添削ツール",
+    description: "夜職専用の写メ日記・オキニトークAI添削ツール。100点満点スコアで指名が増える文章をAIが設計。",
+    type: "website",
+    locale: "ja_JP",
+  },
+  twitter: {
+    card: "summary",
+    title: "シャメコーチ | 写メ日記AI添削ツール",
+    description: "夜職専用。AIが写メ日記を添削・スコアリングして指名を増やす文章を設計します。",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "よるしょく",
+    title: "シャメコーチ",
   },
 };
 
