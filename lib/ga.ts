@@ -6,7 +6,7 @@ declare global {
   }
 }
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? "G-S25Z2KWZJN";
 
 export function gaPageview(path: string) {
   if (!GA_ID || typeof window === "undefined" || !window.gtag) return;

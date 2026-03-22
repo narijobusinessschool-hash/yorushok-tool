@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { gaPageview } from "@/lib/ga";
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? "G-S25Z2KWZJN";
 
 export default function GoogleAnalytics() {
   const pathname = usePathname();
