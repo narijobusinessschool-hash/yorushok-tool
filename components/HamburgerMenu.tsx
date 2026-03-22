@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { gaSubmitInquiry } from "@/lib/ga";
 
 type CurrentUser = {
   id: string;
@@ -75,6 +76,7 @@ export default function HamburgerMenu() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ memberId: user.id, name: user.name, message: contactText.trim() }),
       });
+      gaSubmitInquiry();
       setContactDone(true);
       setContactText("");
       setTimeout(() => {

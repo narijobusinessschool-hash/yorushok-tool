@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import PlanLimitModal from "@/components/PlanLimitModal";
+import { gaGenerateDraft } from "@/lib/ga";
 
 type Category = "写メ日記" | "オキニトーク" | "SNS";
 type SellType = "M売り" | "S売り" | "痴女売り" | "巨乳売り" | "共通";
@@ -1119,6 +1120,9 @@ ${successLine}
 
       setResult(nextResult);
       await persistResult(nextResult);
+      const rawUser = localStorage.getItem("yorushokuCurrentUser");
+      const plan = rawUser ? (JSON.parse(rawUser).plan ?? "free") : "free";
+      gaGenerateDraft({ category, bodyScore: nextResult.bodyScore, plan, sellType });
     } catch (err) {
       console.error("AI添削エラー:", err);
       const raw = localStorage.getItem("yorushokuCurrentUser");

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { gaSignUp } from "@/lib/ga";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -47,7 +48,7 @@ export default function SignupPage() {
       const { user: data } = json;
       localStorage.setItem("yorushokuCurrentUser", JSON.stringify(data));
       document.cookie = `yorushoku_session=${encodeURIComponent(JSON.stringify({ role: data.role }))}; path=/; max-age=86400`;
-
+      gaSignUp();
       router.push("/onboarding");
     } catch {
       setError("登録処理中にエラーが発生しました。");

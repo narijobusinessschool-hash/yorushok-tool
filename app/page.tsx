@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { logError, logEvent } from "@/lib/logger";
+import { gaLogin } from "@/lib/ga";
 
 const SAVED_LOGIN_KEY = "yorushokuSavedLogin";
 const CURRENT_USER_KEY = "yorushokuCurrentUser";
@@ -47,6 +48,7 @@ export default function Home() {
       const { user: data } = json;
       localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(data));
       logEvent("login_success", data.id, { role: data.role });
+      gaLogin(data.role);
 
       document.cookie = `yorushoku_session=${encodeURIComponent(JSON.stringify({ role: data.role }))}; path=/; max-age=86400`;
 
