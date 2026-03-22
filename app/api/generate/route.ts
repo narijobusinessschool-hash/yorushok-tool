@@ -139,6 +139,19 @@ export async function POST(req: Request) {
       }
     }
 
+    // 管理者が「良い」と評価したパターンを取得（参考指針として）
+    let approvedPatternSuggestions: string[] = [];
+    const { data: goodPatterns } = await supabaseAdmin
+      .from("usage_events")
+      .select("meta")
+      .eq("event_type", "pattern_suggestion")
+      .eq("meta->>status", "good")
+      .order("created_at", { ascending: false })
+      .limit(10);
+    if (goodPatterns) {
+      approvedPatternSuggestions = goodPatterns.map((p) => p.meta?.pattern as string).filter(Boolean);
+    }
+
     if (body.mode === "generate_body") {
       // Style analysis from learning examples
       const styleExamples = [
@@ -453,6 +466,9 @@ ${ngWordsText}
 
 ## 優先反映ルール
 ${influenceRulesText}
+
+## 管理者が承認したパターン指針（参考程度に。強制ではなく示唆として活用）
+${approvedPatternSuggestions.length > 0 ? approvedPatternSuggestions.map((p, i) => `${i + 1}. ${p}`).join("\n") : "なし"}
 
 ## 出力形式（JSONのみ、説明文不要）
 ${outputFormat}`;

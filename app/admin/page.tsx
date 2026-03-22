@@ -85,8 +85,8 @@ const GOOD_TITLES_KEY = "yorushokuGoodTitles";
 const GOOD_BODIES_KEY = "yorushokuGoodBodies";
 const NG_WORDS_KEY = "yorushokuLearningConfig";
 
-type CardId = "members" | "permissions" | "device" | "logs" | "inquiries" | "visitors" | "feedback";
-const DEFAULT_CARD_ORDER: CardId[] = ["members", "permissions", "device", "logs", "inquiries", "visitors", "feedback"];
+type CardId = "members" | "permissions" | "device" | "logs" | "inquiries" | "visitors" | "feedback" | "patterns";
+const DEFAULT_CARD_ORDER: CardId[] = ["members", "permissions", "device", "logs", "inquiries", "visitors", "feedback", "patterns"];
 const CARD_ORDER_KEY = "yorushokuAdminCardOrder";
 
 type VisitorPeriod = "day" | "week" | "month" | "60d" | "90d" | "all" | "custom";
@@ -155,6 +155,7 @@ export default function AdminPage() {
 
   // システム状態
   const [systemStatus, setSystemStatus] = useState<{ dbOk: boolean; openaiOk: boolean; resendOk: boolean } | null>(null);
+  const [pendingPatternCount, setPendingPatternCount] = useState(0);
 
   // 学習データ
   const [goodTitles, setGoodTitles] = useState<string[]>([]);
@@ -224,6 +225,13 @@ export default function AdminPage() {
     fetch("/api/admin/system-status")
       .then((r) => r.json())
       .then(setSystemStatus)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/admin/pattern-suggestions?status=pending")
+      .then((r) => r.json())
+      .then((d) => setPendingPatternCount(d.suggestions?.length ?? 0))
       .catch(() => {});
   }, []);
 
@@ -568,6 +576,19 @@ export default function AdminPage() {
                       </div>
                       <p className="mt-3 text-sm leading-7 text-[#5d5965]">ユーザーからの機能改善リクエストを確認します。{unreadCount > 0 ? `未読 ${unreadCount}件があります。` : "未読なし。"}</p>
                       <a href="/admin/inquiries" onClick={(e) => e.stopPropagation()} className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933] hover:bg-[#faf8fb]">開く</a>
+                    </div>
+                  );
+
+                  if (id === "patterns") return (
+                    <div key={id} draggable onDragStart={() => handleDragStart(id)} onDragOver={(e) => handleDragOver(e, id)} onDrop={() => handleDrop(id)} onDragEnd={() => setDragOverId(null)} className={baseClass}>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-[#2c2933]">AIパターン提案</p>
+                        {pendingPatternCount > 0 && (
+                          <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-[#facc15] px-1.5 text-xs font-bold text-[#1c1001]">{pendingPatternCount}</span>
+                        )}
+                      </div>
+                      <p className="mt-3 text-sm leading-7 text-[#5d5965]">AIが蓄積データから発見したパターン提案。良い・悪いで評価してください。{pendingPatternCount > 0 ? `確認待ち ${pendingPatternCount}件あります。` : "確認待ちなし。"}</p>
+                      <a href="/admin/patterns" onClick={(e) => e.stopPropagation()} className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933] hover:bg-[#faf8fb]">開く</a>
                     </div>
                   );
 
