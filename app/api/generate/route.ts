@@ -1,7 +1,13 @@
 import OpenAI from "openai";
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { logError, logEvent } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -81,6 +87,17 @@ export async function POST(req: Request) {
           { status: 429 }
         );
       }
+    }
+
+    // プランを取得してモデルを決定（NBS=gpt-4o、free=gpt-4o-mini）
+    let model = "gpt-4o-mini";
+    if (memberId) {
+      const { data: memberData } = await supabaseAdmin
+        .from("members")
+        .select("plan")
+        .eq("id", Number(memberId))
+        .single();
+      if (memberData?.plan === "nbs") model = "gpt-4o";
     }
 
     const title = body.title?.trim() ?? "";
@@ -321,7 +338,7 @@ ${influenceRulesText}
 ${outputFormat}`;
 
     const response = await client.chat.completions.create({
-      model: "gpt-4o",
+      model,
       temperature: 0.75,
       response_format: { type: "json_object" },
       messages: [
