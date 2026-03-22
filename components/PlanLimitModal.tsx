@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { gaUpgradePromptView, gaUpgradeClick } from "@/lib/ga";
 
 const PAYMENT_URL = process.env.NEXT_PUBLIC_PAYMENT_URL ?? "https://getsugaku-panda.jp/subscription/apply/16527";
 
@@ -17,6 +18,11 @@ type Props = {
 
 export default function PlanLimitModal({ memberId, onClose }: Props) {
   const [history, setHistory] = useState<ScoreHistory[]>([]);
+
+  // モーダル表示を計測
+  useEffect(() => {
+    gaUpgradePromptView("plan_limit_modal");
+  }, []);
 
   useEffect(() => {
     supabase
@@ -89,6 +95,7 @@ export default function PlanLimitModal({ memberId, onClose }: Props) {
             href={PAYMENT_URL}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => gaUpgradeClick("plan_limit_modal")}
             className="flex items-center justify-center gap-2 rounded-2xl bg-[#e85d8a] py-4 text-sm font-bold text-white transition hover:bg-[#d4507c] active:scale-[0.98]"
           >
             今すぐ入会する →

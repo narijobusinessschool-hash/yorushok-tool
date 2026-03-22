@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { gaSubmitInquiry } from "@/lib/ga";
+import { gaSubmitInquiry, gaUpgradePromptView } from "@/lib/ga";
 
 type CurrentUser = {
   id: string;
@@ -185,7 +185,11 @@ export default function HamburgerMenu() {
                   アクセス分析・改善提案
                 </Link>
               ) : (
-                <div className="flex items-center justify-between px-4 py-2.5 text-sm text-[#c8c2dc] cursor-not-allowed select-none">
+                <div
+                  className="flex items-center justify-between px-4 py-2.5 text-sm text-[#c8c2dc] cursor-not-allowed select-none"
+                  onMouseEnter={() => gaUpgradePromptView("menu_access_analysis")}
+                  onTouchStart={() => gaUpgradePromptView("menu_access_analysis")}
+                >
                   アクセス分析・改善提案
                   <span className="rounded-full bg-[#f4e2ea] px-1.5 py-0.5 text-[10px] font-medium text-[#a3476b]">NBS</span>
                 </div>

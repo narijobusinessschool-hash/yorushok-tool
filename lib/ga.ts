@@ -55,9 +55,25 @@ export function gaSubmitInquiry() {
   gaEvent("submit_inquiry");
 }
 
-/** 無料→NBS誘導表示（フリープランがNBSロック画面を見た時） */
-export function gaNbsUpsellView(trigger: string) {
-  gaEvent("nbs_upsell_view", { trigger });
+/**
+ * NBS升格導線が表示された
+ * trigger例: "usage_counter" | "limit_reached_banner" | "plan_limit_modal" | "menu_access_analysis"
+ */
+export function gaUpgradePromptView(trigger: string) {
+  gaEvent("upgrade_prompt_view", { trigger });
+}
+
+/**
+ * NBS入会ボタンをクリックした
+ * trigger例: "plan_limit_modal" | "usage_counter"
+ */
+export function gaUpgradeClick(trigger: string) {
+  gaEvent("upgrade_click", { trigger });
+}
+
+/** 無料上限に到達した瞬間 */
+export function gaLimitReached() {
+  gaEvent("generate_limit_reached");
 }
 
 /** オンボーディング完了 */

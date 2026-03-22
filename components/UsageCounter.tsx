@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import PlanLimitModal from "@/components/PlanLimitModal";
+import { gaUpgradePromptView, gaUpgradeClick, gaLimitReached } from "@/lib/ga";
 
 type Props = {
   memberId: string | number;
@@ -13,6 +14,8 @@ export default function UsageCounter({ memberId }: Props) {
   const [usageCount, setUsageCount] = useState(0);
   const [usageLimit, setUsageLimit] = useState(3);
   const [showModal, setShowModal] = useState(false);
+  const firedPromptView = useRef(false);
+  const firedLimitReached = useRef(false);
 
   useEffect(() => {
     supabase
@@ -29,6 +32,20 @@ export default function UsageCounter({ memberId }: Props) {
       });
   }, [memberId]);
 
+  // バナー表示・上限到達を一度だけ発火
+  useEffect(() => {
+    if (plan === null || plan === "nbs") return;
+    const isAtLimit = usageLimit - usageCount <= 0;
+    if (!firedPromptView.current) {
+      gaUpgradePromptView(isAtLimit ? "limit_reached_banner" : "usage_counter");
+      firedPromptView.current = true;
+    }
+    if (isAtLimit && !firedLimitReached.current) {
+      gaLimitReached();
+      firedLimitReached.current = true;
+    }
+  }, [plan, usageCount, usageLimit]);
+
   if (plan === null || plan === "nbs") return null;
 
   const remaining = usageLimit - usageCount;
@@ -43,7 +60,7 @@ export default function UsageCounter({ memberId }: Props) {
 
       <button
         type="button"
-        onClick={() => setShowModal(true)}
+        onClick={() => { gaUpgradeClick("usage_counter"); setShowModal(true); }}
         className={`w-full rounded-[16px] border p-4 text-left transition active:scale-[0.98] ${
           isAtLimit
             ? "border-[#5c1a2e] bg-[#1e0a12]"
