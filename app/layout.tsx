@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import TrackPageView from "@/components/TrackPageView";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+
+const GA_ID = "G-S25Z2KWZJN";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +39,18 @@ export default function RootLayout({
       lang="ja"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="ga4-init" strategy="afterInteractive">{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${GA_ID}');
+        `}</Script>
+      </head>
       <body className="min-h-full flex flex-col">
         <GoogleAnalytics />
         <HamburgerMenu />
