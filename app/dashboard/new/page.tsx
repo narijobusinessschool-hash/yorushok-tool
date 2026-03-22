@@ -513,6 +513,10 @@ export default function NewPostPage() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isGeneratingBody, setIsGeneratingBody] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showFeedbackToast, setShowFeedbackToast] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState<"使う予定" | "たぶん使う" | "使わない" | null>(null);
+  const [showFeedbackReason, setShowFeedbackReason] = useState(false);
+  const [lastCopiedResultId, setLastCopiedResultId] = useState<string | null>(null);
 
   const [drafts, setDrafts] = useState<SavedDraftResult[]>([]);
   const [outcomes, setOutcomes] = useState<OutcomeMap>({});
@@ -638,14 +642,82 @@ export default function NewPostPage() {
     });
   }, [drafts, outcomes, approvedPatterns, profile?.basic.industry, category, currentPurpose]);
 
-  const copyText = async (value: string, key: string) => {
+  const copyText = async (value: string, key: string, isBodyResult = false) => {
     try {
       await navigator.clipboard.writeText(value);
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(""), 1600);
+
+      if (isBodyResult) {
+        // コピーイベントを記録（本音ログ）
+        const rawUser = localStorage.getItem("yorushokuCurrentUser");
+        const currentUser = rawUser ? JSON.parse(rawUser) : null;
+        const resultId = result ? (result as AnalysisResult & { id?: string }).id : null;
+        setLastCopiedResultId(resultId ?? null);
+        fetch("/api/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            memberId: currentUser?.id,
+            draftResultId: resultId,
+            eventType: "copy",
+          }),
+        }).catch(() => {});
+
+        // 3秒後にトーストを表示
+        setTimeout(() => {
+          setShowFeedbackToast(true);
+          setFeedbackRating(null);
+          setShowFeedbackReason(false);
+        }, 3000);
+      }
     } catch {
       setCopiedKey("");
     }
+  };
+
+  const handleFeedbackRating = async (rating: "使う予定" | "たぶん使う" | "使わない") => {
+    setFeedbackRating(rating);
+    const rawUser = localStorage.getItem("yorushokuCurrentUser");
+    const currentUser = rawUser ? JSON.parse(rawUser) : null;
+
+    if (rating === "使わない") {
+      setShowFeedbackReason(true);
+      return;
+    }
+
+    // 理由不要の場合はそのまま送信
+    fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        memberId: currentUser?.id,
+        draftResultId: lastCopiedResultId,
+        rating,
+        eventType: "feedback",
+      }),
+    }).catch(() => {});
+
+    setTimeout(() => setShowFeedbackToast(false), 1500);
+  };
+
+  const handleFeedbackReason = async (reason: string) => {
+    const rawUser = localStorage.getItem("yorushokuCurrentUser");
+    const currentUser = rawUser ? JSON.parse(rawUser) : null;
+
+    fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        memberId: currentUser?.id,
+        draftResultId: lastCopiedResultId,
+        rating: "使わない",
+        reason,
+        eventType: "feedback",
+      }),
+    }).catch(() => {});
+
+    setShowFeedbackToast(false);
   };
 
   function calculateTitleScore(value: string) {
@@ -1617,7 +1689,7 @@ ${successLine}
 
                     <button
                       type="button"
-                      onClick={() => copyText(result.bodyImproved, "body-result")}
+                      onClick={() => copyText(result.bodyImproved, "body-result", true)}
                       className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-[#e85d8a] px-4 text-sm font-semibold text-white transition hover:bg-[#d4507c]"
                     >
                       {copiedKey === "body-result" ? "コピー完了" : "本文をコピーする"}
@@ -1633,6 +1705,57 @@ ${successLine}
           </aside>
         </div>
       </div>
+
+      {/* フィードバックトースト */}
+      {showFeedbackToast && (
+        <div className="fixed bottom-6 left-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 rounded-2xl border border-[#2f2a45] bg-[#110e1c] p-4 shadow-2xl">
+          {!showFeedbackReason ? (
+            <>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-semibold text-[#f2eefb]">この文章、実際に使いそうですか？</p>
+                <button onClick={() => setShowFeedbackToast(false)} className="text-xs text-[#4d4866] hover:text-[#8b84a8]">×</button>
+              </div>
+              {feedbackRating === null ? (
+                <div className="flex gap-2">
+                  {(["使う予定", "たぶん使う", "使わない"] as const).map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => handleFeedbackRating(r)}
+                      className={`flex-1 rounded-xl py-2 text-xs font-medium transition ${
+                        r === "使わない"
+                          ? "border border-[#2f2a45] text-[#8b84a8] hover:border-[#5c1a2e] hover:text-[#f87171]"
+                          : "border border-[#2f2a45] text-[#8b84a8] hover:border-[#e85d8a]/50 hover:text-[#e85d8a]"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-sm font-medium text-[#e85d8a]">ありがとうございます ✓</p>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-semibold text-[#f2eefb]">使わない理由を教えてください</p>
+                <button onClick={() => setShowFeedbackToast(false)} className="text-xs text-[#4d4866] hover:text-[#8b84a8]">×</button>
+              </div>
+              <div className="space-y-2">
+                {["文体が合わない", "スコアに納得できない", "別の文章にした", "その他"].map((reason) => (
+                  <button
+                    key={reason}
+                    onClick={() => handleFeedbackReason(reason)}
+                    className="block w-full rounded-xl border border-[#2f2a45] px-3 py-2 text-left text-xs text-[#8b84a8] transition hover:border-[#e85d8a]/50 hover:text-[#f2eefb]"
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </main>
   );
 }
