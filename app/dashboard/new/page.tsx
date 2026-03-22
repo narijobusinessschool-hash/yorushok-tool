@@ -512,6 +512,8 @@ export default function NewPostPage() {
   const [savedNotice, setSavedNotice] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isGeneratingBody, setIsGeneratingBody] = useState(false);
+  const [isGeneratingBoth, setIsGeneratingBoth] = useState(false);
+  const [generatedTitleOptions, setGeneratedTitleOptions] = useState<TitleSuggestion[]>([]);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showFeedbackToast, setShowFeedbackToast] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState<"使う予定" | "たぶん使う" | "使わない" | null>(null);
@@ -539,19 +541,11 @@ export default function NewPostPage() {
         if (profileData?.profile_data) {
           const parsed = profileData.profile_data as SavedProfile;
           setProfile(parsed);
-          const autoGoal = getProfileGoal(parsed);
-          const autoEmotion = getProfileEmotion(parsed);
-          if (autoGoal) setShameNikkiGoal(autoGoal);
-          if (autoEmotion) setEmotionTarget(autoEmotion);
         } else {
           const saved = localStorage.getItem("yorushokuPersonaProfile");
           if (saved) {
             const parsed = JSON.parse(saved) as SavedProfile;
             setProfile(parsed);
-            const autoGoal = getProfileGoal(parsed);
-            const autoEmotion = getProfileEmotion(parsed);
-            if (autoGoal) setShameNikkiGoal(autoGoal);
-            if (autoEmotion) setEmotionTarget(autoEmotion);
           }
         }
 
@@ -1161,6 +1155,87 @@ ${successLine}
     }
   }
 
+  async function handleGenerateBoth() {
+    setIsGeneratingBoth(true);
+    try {
+      const rawExamples = localStorage.getItem("yorushokuLearningExamples");
+      const rawConfig = localStorage.getItem("yorushokuLearningConfig");
+      const rawGoodTitles = localStorage.getItem("yorushokuGoodTitles");
+      const rawGoodBodies = localStorage.getItem("yorushokuGoodBodies");
+      const learningExamples = rawExamples ? JSON.parse(rawExamples) : [];
+      const learningConfig = rawConfig ? JSON.parse(rawConfig) : { ngWords: [], influenceRules: [] };
+      const goodTitles = rawGoodTitles ? JSON.parse(rawGoodTitles) : [];
+      const goodBodies = rawGoodBodies ? JSON.parse(rawGoodBodies) : [];
+
+      const rawUser = localStorage.getItem("yorushokuCurrentUser");
+      const currentUserId = rawUser ? JSON.parse(rawUser).id : undefined;
+
+      const diagnosisInfo = profile
+        ? {
+            typeName: profile.diagnosis.typeName,
+            bestTarget: profile.diagnosis.bestTarget,
+            strengths: profile.diagnosis.strengths,
+            personaText: profile.diagnosis.personaText,
+            uspSummary: profile.usp.summary,
+            positioning: profile.stp.positioning,
+            emotionNeeds: profile.persona.emotionNeeds,
+          }
+        : undefined;
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memberId: currentUserId,
+          mode: "generate_both",
+          category,
+          purpose: category === "写メ日記" ? shameNikkiGoal || undefined : undefined,
+          emotionTarget: category === "写メ日記" ? emotionTarget || undefined : undefined,
+          sellType: category === "写メ日記" ? sellType || undefined : undefined,
+          okiniPurpose: category === "オキニトーク" ? okiniPurpose || undefined : undefined,
+          relationshipLevel: category === "オキニトーク" ? relationshipLevel || undefined : undefined,
+          interestLevel: category === "オキニトーク" ? interestLevel || undefined : undefined,
+          partnerType: category === "オキニトーク" ? partnerType || undefined : undefined,
+          sendTime: category === "オキニトーク" ? sendTime || undefined : undefined,
+          industry: profile?.basic.industry,
+          diagnosisInfo,
+          learningExamples,
+          goodTitles,
+          goodBodies,
+          ngWords: learningConfig.ngWords,
+          influenceRules: learningConfig.influenceRules,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.status === 429 && data.error === "limit_exceeded") {
+        setShowLimitModal(true);
+        return;
+      }
+      if (res.status === 403) {
+        setSavedNotice("ご利用が停止されています。管理者にお問い合わせください。");
+        setTimeout(() => setSavedNotice(""), 5000);
+        return;
+      }
+      if (!res.ok) throw new Error(data.error ?? `API error: ${res.status}`);
+
+      if (data.titleSuggestions?.length > 0) {
+        const sorted = [...data.titleSuggestions].sort((a: TitleSuggestion, b: TitleSuggestion) => b.score - a.score);
+        setGeneratedTitleOptions(sorted);
+        setTitle(sorted[0].text);
+        setGeneratedTitle(sorted[0].text);
+      }
+      if (data.generatedBody) {
+        setText(data.generatedBody);
+      }
+    } catch (err) {
+      console.error("生成エラー:", err);
+    } finally {
+      setIsGeneratingBoth(false);
+    }
+  }
+
   async function handleAnalyze() {
     setIsAiLoading(true);
     try {
@@ -1386,11 +1461,18 @@ ${successLine}
                   <div className="mb-5">
                     <button
                       type="button"
-                      onClick={generateAiTitle}
-                      className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#e85d8a] px-5 text-sm font-semibold text-white transition hover:bg-[#d4507c]"
+                      onClick={handleGenerateBoth}
+                      disabled={isGeneratingBoth}
+                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#e85d8a] px-5 text-sm font-semibold text-white transition hover:bg-[#d4507c] disabled:opacity-50"
                     >
-                      タイトルをAIで生成
+                      {isGeneratingBoth ? "生成中…" : "✦ タイトルと本文を生成する"}
+                      {!isGeneratingBoth && (
+                        <span className="rounded-lg bg-white/20 px-2 py-0.5 text-xs font-bold">1ポイント</span>
+                      )}
                     </button>
+                    <p className="mt-1.5 text-xs text-[#4d4866]">
+                      上の項目を選ぶと、選択内容に沿ったタイトルと本文をAIが生成します
+                    </p>
                   </div>
 
                   <div className="mb-5">
@@ -1416,6 +1498,28 @@ ${successLine}
                       <p className="mt-2 text-xs text-[#e85d8a]">
                         生成タイトルを反映しました。必要ならそのまま編集できます。
                       </p>
+                    )}
+                    {generatedTitleOptions.length > 0 && (
+                      <div className="mt-3 space-y-1.5">
+                        <p className="text-xs font-medium text-[#8b84a8]">タイトル候補（タップで反映）</p>
+                        {generatedTitleOptions.map((opt, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => { setTitle(opt.text); setGeneratedTitle(opt.text); }}
+                            className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-xs transition ${
+                              title === opt.text
+                                ? "border-[#e85d8a] bg-[#e85d8a]/10 text-[#f2eefb]"
+                                : "border-[#2f2a45] bg-[#0e0c18] text-[#c8c2dc] hover:border-[#e85d8a]/50"
+                            }`}
+                          >
+                            <span>{opt.text}</span>
+                            <span className={`ml-2 shrink-0 text-xs font-bold ${title === opt.text ? "text-[#e85d8a]" : "text-[#4d4866]"}`}>
+                              {opt.score}点
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </>
