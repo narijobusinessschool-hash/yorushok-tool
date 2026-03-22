@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import HamburgerMenu from "@/components/HamburgerMenu";
+import TrackPageView from "@/components/TrackPageView";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <HamburgerMenu />
+        <TrackPageView />
         {children}
         <footer className="mt-auto border-t border-[#1a1628] bg-[#09070f] px-5 py-6 text-center">
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-[#4d4866]">

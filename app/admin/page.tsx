@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type SavedDraftResult = {
   id: string;
@@ -84,6 +84,48 @@ const GOOD_TITLES_KEY = "yorushokuGoodTitles";
 const GOOD_BODIES_KEY = "yorushokuGoodBodies";
 const NG_WORDS_KEY = "yorushokuLearningConfig";
 
+type CardId = "members" | "permissions" | "device" | "logs" | "inquiries" | "visitors";
+const DEFAULT_CARD_ORDER: CardId[] = ["members", "permissions", "device", "logs", "inquiries", "visitors"];
+const CARD_ORDER_KEY = "yorushokuAdminCardOrder";
+
+type VisitorPeriod = "day" | "week" | "month" | "60d" | "90d" | "all" | "custom";
+const PERIOD_LABELS: { id: VisitorPeriod; label: string }[] = [
+  { id: "day", label: "日" },
+  { id: "week", label: "週" },
+  { id: "month", label: "月" },
+  { id: "60d", label: "60日" },
+  { id: "90d", label: "90日" },
+  { id: "all", label: "全期間" },
+  { id: "custom", label: "カスタム" },
+];
+
+function getPeriodRange(period: VisitorPeriod, customFrom?: string, customTo?: string) {
+  const now = new Date();
+  if (period === "day") {
+    const from = new Date(now); from.setHours(0, 0, 0, 0);
+    return { from: from.toISOString(), to: now.toISOString() };
+  }
+  if (period === "week") {
+    return { from: new Date(now.getTime() - 7 * 864e5).toISOString(), to: now.toISOString() };
+  }
+  if (period === "month") {
+    return { from: new Date(now.getTime() - 30 * 864e5).toISOString(), to: now.toISOString() };
+  }
+  if (period === "60d") {
+    return { from: new Date(now.getTime() - 60 * 864e5).toISOString(), to: now.toISOString() };
+  }
+  if (period === "90d") {
+    return { from: new Date(now.getTime() - 90 * 864e5).toISOString(), to: now.toISOString() };
+  }
+  if (period === "all") {
+    return { from: undefined, to: undefined };
+  }
+  if (period === "custom" && customFrom && customTo) {
+    return { from: new Date(customFrom).toISOString(), to: new Date(customTo + "T23:59:59").toISOString() };
+  }
+  return { from: undefined, to: undefined };
+}
+
 export default function AdminPage() {
   const [drafts, setDrafts] = useState<SavedDraftResult[]>([]);
   const [outcomes, setOutcomes] = useState<OutcomeMap>({});
@@ -91,6 +133,21 @@ export default function AdminPage() {
     {}
   );
   const [savedMessage, setSavedMessage] = useState("");
+
+  // カード順序
+  const [cardOrder, setCardOrder] = useState<CardId[]>(DEFAULT_CARD_ORDER);
+  const dragId = useRef<CardId | null>(null);
+  const [dragOverId, setDragOverId] = useState<CardId | null>(null);
+
+  // 問い合わせ未読
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // 訪問者
+  const [visitorPeriod, setVisitorPeriod] = useState<VisitorPeriod>("day");
+  const [visitorCount, setVisitorCount] = useState<number | null>(null);
+  const [realtimeCount, setRealtimeCount] = useState<number | null>(null);
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
 
   // 学習データ
   const [goodTitles, setGoodTitles] = useState<string[]>([]);
@@ -100,6 +157,72 @@ export default function AdminPage() {
   const [bodyInput, setBodyInput] = useState("");
   const [ngWordInput, setNgWordInput] = useState("");
   const [learnTab, setLearnTab] = useState<"titles" | "bodies" | "ng">("titles");
+
+  // カード順序をlocalStorageから復元
+  useEffect(() => {
+    const saved = localStorage.getItem(CARD_ORDER_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as CardId[];
+        // 新カードが追加されていれば末尾に追加
+        const merged = [...parsed, ...DEFAULT_CARD_ORDER.filter((id) => !parsed.includes(id))];
+        setCardOrder(merged);
+      } catch { /* ignore */ }
+    }
+  }, []);
+
+  // 未読件数取得（30秒ごと）
+  useEffect(() => {
+    async function fetchUnread() {
+      const res = await fetch("/api/inquiries?unread=1");
+      const json = await res.json();
+      setUnreadCount(json.count ?? 0);
+    }
+    fetchUnread();
+    const t = setInterval(fetchUnread, 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  // 訪問者数取得
+  useEffect(() => {
+    async function fetchVisitors() {
+      const { from, to } = getPeriodRange(visitorPeriod, customFrom, customTo);
+      const params = new URLSearchParams();
+      if (from) params.set("from", from);
+      if (to) params.set("to", to);
+      const res = await fetch(`/api/admin/visitors?${params}`);
+      const json = await res.json();
+      setVisitorCount(json.count ?? 0);
+      setRealtimeCount(json.realtime ?? 0);
+    }
+    if (visitorPeriod !== "custom" || (customFrom && customTo)) {
+      fetchVisitors();
+    }
+    const t = setInterval(() => {
+      if (visitorPeriod !== "custom" || (customFrom && customTo)) fetchVisitors();
+    }, 30000);
+    return () => clearInterval(t);
+  }, [visitorPeriod, customFrom, customTo]);
+
+  // ドラッグ&ドロップ操作
+  function handleDragStart(id: CardId) { dragId.current = id; }
+  function handleDragOver(e: React.DragEvent, id: CardId) {
+    e.preventDefault();
+    setDragOverId(id);
+  }
+  function handleDrop(targetId: CardId) {
+    const fromId = dragId.current;
+    if (!fromId || fromId === targetId) { setDragOverId(null); return; }
+    const next = [...cardOrder];
+    const fi = next.indexOf(fromId);
+    const ti = next.indexOf(targetId);
+    next.splice(fi, 1);
+    next.splice(ti, 0, fromId);
+    setCardOrder(next);
+    localStorage.setItem(CARD_ORDER_KEY, JSON.stringify(next));
+    dragId.current = null;
+    setDragOverId(null);
+  }
 
   useEffect(() => {
     const rawDrafts = localStorage.getItem("yorushokuDraftResults");
@@ -365,58 +488,99 @@ export default function AdminPage() {
                 </a>
               </div>
 
-              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <a
-                  href="/admin/members"
-                  className="rounded-2xl border border-[#ece7ef] bg-[#fcfbfd] p-5 transition hover:bg-white"
-                >
-                  <p className="text-sm font-semibold text-[#2c2933]">会員一覧</p>
-                  <p className="mt-3 text-sm leading-7 text-[#5d5965]">
-                    会員の追加、ログインID・パスワード確認、利用 / 利用停止の切替を行います。
-                  </p>
-                  <span className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933]">
-                    開く
-                  </span>
-                </a>
+              <p className="mt-3 text-xs text-[#9b92a4]">ドラッグで並び替えできます</p>
+              <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                {cardOrder.map((id) => {
+                  const isOver = dragOverId === id;
+                  const baseClass = `rounded-2xl border p-5 transition cursor-grab active:cursor-grabbing select-none ${isOver ? "border-[#a3476b] bg-[#fdf0f4]" : "border-[#ece7ef] bg-[#fcfbfd] hover:bg-white"}`;
 
-                <div className="rounded-2xl border border-[#ece7ef] bg-[#fcfbfd] p-5">
-                  <p className="text-sm font-semibold text-[#2c2933]">利用権限管理</p>
-                  <p className="mt-3 text-sm leading-7 text-[#5d5965]">
-                    契約中かどうか、使用可能かどうか、手動承認のON/OFFをここにまとめます。
-                  </p>
-                  <button
-                    type="button"
-                    className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933]"
-                  >
-                    後で実装
-                  </button>
-                </div>
+                  if (id === "members") return (
+                    <div key={id} draggable onDragStart={() => handleDragStart(id)} onDragOver={(e) => handleDragOver(e, id)} onDrop={() => handleDrop(id)} onDragEnd={() => setDragOverId(null)} className={baseClass}>
+                      <p className="text-sm font-semibold text-[#2c2933]">会員一覧</p>
+                      <p className="mt-3 text-sm leading-7 text-[#5d5965]">会員の追加、ログインID・パスワード確認、利用 / 利用停止の切替を行います。</p>
+                      <a href="/admin/members" onClick={(e) => e.stopPropagation()} className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933] hover:bg-[#faf8fb]">開く</a>
+                    </div>
+                  );
 
-                <div className="rounded-2xl border border-[#ece7ef] bg-[#fcfbfd] p-5">
-                  <p className="text-sm font-semibold text-[#2c2933]">端末制限</p>
-                  <p className="mt-3 text-sm leading-7 text-[#5d5965]">
-                    1契約1端末管理、端末解除、再承認の導線をここに集約します。
-                  </p>
-                  <button
-                    type="button"
-                    className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933]"
-                  >
-                    後で実装
-                  </button>
-                </div>
+                  if (id === "permissions") return (
+                    <div key={id} draggable onDragStart={() => handleDragStart(id)} onDragOver={(e) => handleDragOver(e, id)} onDrop={() => handleDrop(id)} onDragEnd={() => setDragOverId(null)} className={baseClass}>
+                      <p className="text-sm font-semibold text-[#2c2933]">利用権限管理</p>
+                      <p className="mt-3 text-sm leading-7 text-[#5d5965]">契約中かどうか、使用可能かどうか、手動承認のON/OFFをここにまとめます。</p>
+                      <button type="button" className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933]">後で実装</button>
+                    </div>
+                  );
 
-                <div className="rounded-2xl border border-[#ece7ef] bg-[#fcfbfd] p-5">
-                  <p className="text-sm font-semibold text-[#2c2933]">管理者ログ</p>
-                  <p className="mt-3 text-sm leading-7 text-[#5d5965]">
-                    誰がどのパターンを承認したか、権限変更したかを記録する予定です。
-                  </p>
-                  <button
-                    type="button"
-                    className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933]"
-                  >
-                    後で実装
-                  </button>
-                </div>
+                  if (id === "device") return (
+                    <div key={id} draggable onDragStart={() => handleDragStart(id)} onDragOver={(e) => handleDragOver(e, id)} onDrop={() => handleDrop(id)} onDragEnd={() => setDragOverId(null)} className={baseClass}>
+                      <p className="text-sm font-semibold text-[#2c2933]">端末制限</p>
+                      <p className="mt-3 text-sm leading-7 text-[#5d5965]">1契約1端末管理、端末解除、再承認の導線をここに集約します。</p>
+                      <button type="button" className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933]">後で実装</button>
+                    </div>
+                  );
+
+                  if (id === "logs") return (
+                    <div key={id} draggable onDragStart={() => handleDragStart(id)} onDragOver={(e) => handleDragOver(e, id)} onDrop={() => handleDrop(id)} onDragEnd={() => setDragOverId(null)} className={baseClass}>
+                      <p className="text-sm font-semibold text-[#2c2933]">管理者ログ</p>
+                      <p className="mt-3 text-sm leading-7 text-[#5d5965]">誰がどのパターンを承認したか、権限変更したかを記録する予定です。</p>
+                      <button type="button" className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933]">後で実装</button>
+                    </div>
+                  );
+
+                  if (id === "inquiries") return (
+                    <div key={id} draggable onDragStart={() => handleDragStart(id)} onDragOver={(e) => handleDragOver(e, id)} onDrop={() => handleDrop(id)} onDragEnd={() => setDragOverId(null)} className={baseClass}>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-[#2c2933]">機能改善問合せ</p>
+                        {unreadCount > 0 && (
+                          <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-[#e85d8a] px-1.5 text-xs font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</span>
+                        )}
+                      </div>
+                      <p className="mt-3 text-sm leading-7 text-[#5d5965]">ユーザーからの機能改善リクエストを確認します。{unreadCount > 0 ? `未読 ${unreadCount}件があります。` : "未読なし。"}</p>
+                      <a href="/admin/inquiries" onClick={(e) => e.stopPropagation()} className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-[#d8d3dc] bg-white px-4 text-sm font-medium text-[#2c2933] hover:bg-[#faf8fb]">開く</a>
+                    </div>
+                  );
+
+                  if (id === "visitors") return (
+                    <div key={id} draggable onDragStart={() => handleDragStart(id)} onDragOver={(e) => handleDragOver(e, id)} onDrop={() => handleDrop(id)} onDragEnd={() => setDragOverId(null)} className={baseClass}>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-[#2c2933]">サイト訪問者</p>
+                        <span className="flex items-center gap-1 rounded-full bg-[#e8f7ee] px-2 py-0.5 text-xs font-medium text-[#1f7a43]">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#1f7a43] animate-pulse" />
+                          リアルタイム {realtimeCount ?? "—"}人
+                        </span>
+                      </div>
+
+                      {/* 期間タブ */}
+                      <div className="mt-3 flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
+                        {PERIOD_LABELS.map(({ id: pid, label }) => (
+                          <button
+                            key={pid}
+                            type="button"
+                            onClick={() => setVisitorPeriod(pid)}
+                            className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${visitorPeriod === pid ? "bg-[#a3476b] text-white" : "bg-white border border-[#d8d3dc] text-[#5d5965] hover:bg-[#faf8fb]"}`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* カスタム日付 */}
+                      {visitorPeriod === "custom" && (
+                        <div className="mt-2 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="rounded-lg border border-[#d8d3dc] bg-white px-2 py-1 text-xs text-[#2c2933] outline-none focus:border-[#a3476b]" />
+                          <span className="text-xs text-[#9b92a4]">〜</span>
+                          <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="rounded-lg border border-[#d8d3dc] bg-white px-2 py-1 text-xs text-[#2c2933] outline-none focus:border-[#a3476b]" />
+                        </div>
+                      )}
+
+                      <p className="mt-3 text-3xl font-bold text-[#2c2933]">
+                        {visitorCount === null ? "—" : `${visitorCount.toLocaleString()}回`}
+                      </p>
+                      <p className="text-xs text-[#9b92a4]">{PERIOD_LABELS.find((p) => p.id === visitorPeriod)?.label}の訪問数</p>
+                    </div>
+                  );
+
+                  return null;
+                })}
               </div>
             </div>
 
