@@ -31,6 +31,14 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <HamburgerMenu />
         {children}
+        <footer className="mt-auto border-t border-[#1a1628] bg-[#09070f] px-5 py-6 text-center">
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-[#4d4866]">
+            <a href="/terms" className="hover:text-[#8b84a8] transition">利用規約</a>
+            <a href="/privacy" className="hover:text-[#8b84a8] transition">プライバシーポリシー</a>
+            <a href="/tokushoho" className="hover:text-[#8b84a8] transition">特定商取引法に基づく表記</a>
+          </div>
+          <p className="mt-3 text-xs text-[#2d2840]">© 2026 NBS（Narijo Business School）</p>
+        </footer>
       </body>
     </html>
   );

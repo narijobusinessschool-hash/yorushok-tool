@@ -22,11 +22,25 @@ type OutcomeRow = {
   visit: string;
 };
 
+// 流れ文字のコピー（心理学的訴求）
+const TICKER_ITEMS = [
+  "✦ 指名1本で数万円。その文章、月々で磨き続けたほうが絶対に得",
+  "✦ 1日あたりコーヒー1杯以下。でも、指名の差は何万円にもなる",
+  "✦ 受講生100名が実証済み。写メ日記を変えたら指名が変わった",
+  "✦ 添削・動画・ライブアーカイブ、すべて無制限で使い放題",
+  "✦ 「どうせ変わらない」と思っていた文章が、スコア30点上がった",
+  "✦ 本気の子だけが使っている、プロ水準の文章設計ツール",
+  "✦ 指名を増やしたいなら、センスより仕組み。文章には型がある",
+];
+
+const tickerText = TICKER_ITEMS.join("　　　　");
+
 export default function DashboardPage() {
   const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [outcomes, setOutcomes] = useState<OutcomeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [plan, setPlan] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -35,7 +49,7 @@ export default function DashboardPage() {
       const currentUser = JSON.parse(rawUser);
       setCurrentUserId(String(currentUser.id));
 
-      const [{ data: allDrafts }, { data: allOutcomes }] = await Promise.all([
+      const [{ data: allDrafts }, { data: allOutcomes }, { data: memberData }] = await Promise.all([
         supabase
           .from("draft_results")
           .select("id, created_at, category, title, improved_text, body_score, status")
@@ -46,10 +60,16 @@ export default function DashboardPage() {
           .from("draft_outcomes")
           .select("draft_id, used, reservation, nomination, visit")
           .eq("member_id", currentUser.id),
+        supabase
+          .from("members")
+          .select("plan")
+          .eq("id", currentUser.id)
+          .single(),
       ]);
 
       setDrafts(allDrafts ?? []);
       setOutcomes(allOutcomes ?? []);
+      setPlan(memberData?.plan ?? "free");
       setLoading(false);
 
       if (!allDrafts || allDrafts.length === 0) {
@@ -79,6 +99,7 @@ export default function DashboardPage() {
       : 0;
 
   const recentDrafts = drafts.slice(0, 5);
+  const isNbs = plan === "nbs";
 
   const stats = [
     { label: "今月の添削", value: loading ? "…" : String(thisMonthDrafts.length), unit: "回" },
@@ -86,15 +107,19 @@ export default function DashboardPage() {
     { label: "平均スコア", value: loading ? "…" : avgScore > 0 ? String(avgScore) : "–", unit: avgScore > 0 ? "点" : "" },
   ];
 
-  const actions = [
-    { title: "添削する", desc: "写メ日記・オキニトークを添削", href: "/dashboard/new", primary: true },
-    { title: "成果を記録", desc: "使った文章の反応を入力", href: "/dashboard/results", primary: false },
-    { title: "マイページ", desc: "診断結果やUSPを確認", href: "/mypage", primary: false },
-  ];
-
   return (
-    <main className="min-h-screen bg-[#09070f] px-4 pb-24 pt-8 text-[#f2eefb] sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-2xl">
+    <main className="min-h-screen bg-[#09070f] text-[#f2eefb]">
+
+      {/* 流れ文字告知バナー */}
+      <div className="overflow-hidden border-b border-[#231f36] bg-[#0e0c18] py-2.5">
+        <div className="animate-marquee inline-flex gap-0">
+          <span className="text-xs font-medium text-[#c8c2dc] pr-16">{tickerText}</span>
+          {/* シームレスループのため複製 */}
+          <span className="text-xs font-medium text-[#c8c2dc] pr-16">{tickerText}</span>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-2xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
 
         {/* ヘッダー */}
         <header className="mb-6">
@@ -112,7 +137,7 @@ export default function DashboardPage() {
         {/* メインCTAボタン */}
         <a
           href="/dashboard/new"
-          className="mb-6 flex items-center justify-between rounded-[20px] bg-[#e85d8a] px-6 py-5 transition active:scale-[0.98] hover:bg-[#d4507c]"
+          className="mb-4 flex items-center justify-between rounded-[20px] bg-[#e85d8a] px-6 py-5 transition active:scale-[0.98] hover:bg-[#d4507c]"
         >
           <div>
             <p className="text-sm font-semibold text-white/80">今すぐ始める</p>
@@ -120,6 +145,28 @@ export default function DashboardPage() {
           </div>
           <span className="text-2xl text-white/80">→</span>
         </a>
+
+        {/* アクセス解析ボタン（添削ボタン直下） */}
+        {isNbs ? (
+          <a
+            href="/dashboard/access"
+            className="mb-6 flex items-center justify-between rounded-[20px] border border-[#2f2a45] bg-[#110e1c] px-6 py-4 transition hover:border-[#3d3760] active:scale-[0.98]"
+          >
+            <div>
+              <p className="text-xs font-semibold text-[#8b84a8]">NBS会員限定</p>
+              <p className="mt-0.5 text-sm font-bold text-[#f2eefb]">アクセス解析を見る</p>
+            </div>
+            <span className="text-lg text-[#e85d8a]">→</span>
+          </a>
+        ) : (
+          <div className="mb-6 flex items-center justify-between rounded-[20px] border border-[#231f36] bg-[#0e0c18] px-6 py-4 opacity-60 cursor-not-allowed">
+            <div>
+              <p className="text-xs font-semibold text-[#4d4866]">NBS会員限定</p>
+              <p className="mt-0.5 text-sm font-bold text-[#4d4866]">アクセス解析を見る</p>
+            </div>
+            <span className="text-xl text-[#4d4866]">🔒</span>
+          </div>
+        )}
 
         {/* スタッツ */}
         <div className="mb-6 grid grid-cols-3 gap-3">
@@ -136,7 +183,10 @@ export default function DashboardPage() {
 
         {/* サブアクション */}
         <div className="mb-6 grid grid-cols-2 gap-3">
-          {actions.slice(1).map((action) => (
+          {[
+            { title: "成果を記録", desc: "使った文章の反応を入力", href: "/dashboard/results" },
+            { title: "マイページ", desc: "診断結果やUSPを確認", href: "/mypage" },
+          ].map((action) => (
             <a
               key={action.title}
               href={action.href}

@@ -19,9 +19,8 @@ export default function Home() {
   useEffect(() => {
     const saved = localStorage.getItem(SAVED_LOGIN_KEY);
     if (saved) {
-      const { email: savedEmail, password: savedPassword } = JSON.parse(saved);
+      const { email: savedEmail } = JSON.parse(saved);
       setEmail(savedEmail ?? "");
-      setPassword(savedPassword ?? "");
       setRememberMe(true);
     }
   }, []);
@@ -32,42 +31,28 @@ export default function Home() {
     setLoading(true);
 
     try {
-      const { data, error: dbError } = await supabase
-        .from("members")
-        .select("*")
-        .eq("email", email.trim())
-        .eq("password", password)
-        .single();
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const json = await res.json();
 
-      if (dbError || !data) {
-        logError("login_failed", "メールアドレスまたはパスワードが違います", { email: email.trim() });
-        setError("メールアドレスまたはパスワードが違います。");
+      if (!res.ok) {
+        logError("login_failed", json.error ?? "ログイン失敗", { email: email.trim() });
+        setError(json.error ?? "メールアドレスまたはパスワードが違います。");
         return;
       }
 
-      if (data.status === "停止中") {
-        setError("このアカウントは現在利用停止中です。管理者にお問い合わせください。");
-        return;
-      }
-
-      if (data.status === "解約") {
-        setError("このアカウントは解約済みです。管理者にお問い合わせください。");
-        return;
-      }
-
-      if (!data.usage_permission) {
-        setError("現在このアカウントの利用が制限されています。管理者にお問い合わせください。");
-        return;
-      }
-
-      const userData = { id: data.id, name: data.name, email: data.email, role: data.role };
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userData));
+      const { user: data } = json;
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(data));
       logEvent("login_success", data.id, { role: data.role });
 
       document.cookie = `yorushoku_session=${encodeURIComponent(JSON.stringify({ role: data.role }))}; path=/; max-age=86400`;
 
       if (rememberMe) {
-        localStorage.setItem(SAVED_LOGIN_KEY, JSON.stringify({ email: email.trim(), password }));
+        // パスワードは保存しない（メールアドレスのみ）
+        localStorage.setItem(SAVED_LOGIN_KEY, JSON.stringify({ email: email.trim() }));
       } else {
         localStorage.removeItem(SAVED_LOGIN_KEY);
       }
@@ -102,6 +87,9 @@ export default function Home() {
           <p className="mt-4 text-[#8b84a8] leading-7">
             写メ日記・オキニトークをプロ水準に仕上げ、<br />
             毎月の指名・来店数を底上げします。
+          </p>
+          <p className="mt-2 text-[10px] leading-5 text-[#4d4866]">
+            ※ 効果には個人差があります。成果を保証するものではありません。
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">

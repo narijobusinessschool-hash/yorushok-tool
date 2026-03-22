@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -11,6 +10,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -20,49 +20,32 @@ export default function SignupPage() {
       setError("パスワードは8文字以上で設定してください。");
       return;
     }
-
     if (password !== confirmPassword) {
       setError("パスワードが一致しません。");
+      return;
+    }
+    if (!agreedToTerms) {
+      setError("利用規約・プライバシーポリシーに同意してください。");
       return;
     }
 
     setLoading(true);
 
     try {
-      const { data: existing } = await supabase
-        .from("members")
-        .select("id")
-        .eq("email", email.trim())
-        .single();
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const json = await res.json();
 
-      if (existing) {
-        setError("このメールアドレスはすでに登録されています。");
+      if (!res.ok) {
+        setError(json.error ?? "登録に失敗しました。もう一度お試しください。");
         return;
       }
 
-      const { data, error: insertError } = await supabase
-        .from("members")
-        .insert({
-          email: email.trim(),
-          password,
-          role: "一般会員",
-          status: "契約中",
-          plan: "free",
-          usage_count: 0,
-          usage_limit: 3,
-          usage_permission: true,
-          note: "",
-        })
-        .select()
-        .single();
-
-      if (insertError || !data) {
-        setError("登録に失敗しました。もう一度お試しください。");
-        return;
-      }
-
-      const userData = { id: data.id, name: data.name ?? "", email: data.email, role: data.role };
-      localStorage.setItem("yorushokuCurrentUser", JSON.stringify(userData));
+      const { user: data } = json;
+      localStorage.setItem("yorushokuCurrentUser", JSON.stringify(data));
       document.cookie = `yorushoku_session=${encodeURIComponent(JSON.stringify({ role: data.role }))}; path=/; max-age=86400`;
 
       router.push("/onboarding");
@@ -104,9 +87,12 @@ export default function SignupPage() {
           </div>
 
           <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#3d1429] bg-[#1e0a12] px-4 py-2">
-            <span className="text-xs font-bold text-[#e85d8a]">無料 3回</span>
-            <span className="text-xs text-[#8b84a8]">使い切ったら月額9,800円で無制限に</span>
+            <span className="text-xs font-bold text-[#e85d8a]">✦ 無料で3回試せる</span>
+            <span className="text-xs text-[#8b84a8]">登録1分・カード不要</span>
           </div>
+          <p className="mt-3 text-[10px] leading-5 text-[#4d4866]">
+            ※ 本サービスは18歳以上対象です。効果には個人差があります。
+          </p>
         </div>
 
         {/* 登録フォーム */}
@@ -157,6 +143,22 @@ export default function SignupPage() {
                 required
                 className="w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 py-3.5 text-[#f2eefb] placeholder-[#4d4866] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
               />
+            </div>
+
+            <div className="flex items-start gap-3">
+              <input
+                id="terms"
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#2f2a45] accent-[#e85d8a]"
+              />
+              <label htmlFor="terms" className="text-xs leading-5 text-[#8b84a8]">
+                <a href="/terms" target="_blank" className="font-semibold text-[#e85d8a] hover:underline">利用規約</a>
+                {" "}および{" "}
+                <a href="/privacy" target="_blank" className="font-semibold text-[#e85d8a] hover:underline">プライバシーポリシー</a>
+                に同意します
+              </label>
             </div>
 
             {error && (
