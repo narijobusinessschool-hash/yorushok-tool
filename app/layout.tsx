@@ -18,14 +18,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const BASE_URL = "https://yorushok-tool.vercel.app";
+
 export const metadata: Metadata = {
   title: "シャメコーチ | 写メ日記AI添削ツール",
   description: "夜職専用の写メ日記・オキニトークAI添削ツール。100点満点スコアで指名が増える文章をAIが設計。シャメコーチで毎月の指名・来店数を底上げ。",
-  keywords: ["写メ日記 添削", "写メ日記 AI", "夜職 文章 AI", "指名 増やす", "写メ日記 コーチ", "シャメコーチ"],
+  keywords: ["写メ日記 添削", "写メ日記 AI", "夜職 文章 AI", "指名 増やす", "写メ日記 コーチ", "シャメコーチ", "キャバクラ 文章", "夜職 AI ツール"],
+  metadataBase: new URL(BASE_URL),
+  alternates: {
+    canonical: BASE_URL,
+  },
   manifest: "/manifest.json",
   openGraph: {
     title: "シャメコーチ | 写メ日記AI添削ツール",
     description: "夜職専用の写メ日記・オキニトークAI添削ツール。100点満点スコアで指名が増える文章をAIが設計。",
+    url: BASE_URL,
+    siteName: "シャメコーチ",
     type: "website",
     locale: "ja_JP",
   },
@@ -33,6 +41,9 @@ export const metadata: Metadata = {
     card: "summary",
     title: "シャメコーチ | 写メ日記AI添削ツール",
     description: "夜職専用。AIが写メ日記を添削・スコアリングして指名を増やす文章を設計します。",
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GSC_VERIFICATION ?? "",
   },
   appleWebApp: {
     capable: true,

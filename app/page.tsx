@@ -80,8 +80,45 @@ export default function Home() {
     }
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "シャメコーチ",
+    url: "https://yorushok-tool.vercel.app",
+    description: "夜職専用の写メ日記・オキニトークAI添削ツール。100点満点スコアで指名が増える文章をAIが設計します。",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    offers: [
+      {
+        "@type": "Offer",
+        name: "無料プラン",
+        price: "0",
+        priceCurrency: "JPY",
+        description: "月10回まで無料で写メ日記を添削",
+      },
+      {
+        "@type": "Offer",
+        name: "NBSプラン",
+        price: "9800",
+        priceCurrency: "JPY",
+        billingPeriod: "P1M",
+        description: "写メ日記添削AI無制限 + 動画コンテンツ + ライブアーカイブ",
+      },
+    ],
+    provider: {
+      "@type": "Organization",
+      name: "NBS（Narijo Business School）",
+      url: "https://www.narijo.net/",
+    },
+  };
+
   return (
-    <main className="min-h-screen bg-[#09070f] text-[#f2eefb]">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <main className="min-h-screen bg-[#09070f] text-[#f2eefb]">
       <div className="mx-auto flex min-h-screen max-w-lg flex-col px-5 py-10 sm:py-16">
 
         {/* ブランド */}
@@ -204,5 +241,6 @@ export default function Home() {
         </p>
       </div>
     </main>
+    </>
   );
 }
