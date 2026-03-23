@@ -30,7 +30,7 @@ type DiagnosisInfo = {
 
 type RequestBody = {
   memberId?: string;
-  mode?: "generate_body" | "generate_both";
+  mode?: "generate_body";
   title?: string;
   text?: string;
   category?: "写メ日記" | "オキニトーク" | "SNS";
@@ -73,7 +73,6 @@ export async function POST(req: Request) {
     const body = (await req.json()) as RequestBody;
     const memberId = body.memberId;
     const isGenerateBody = body.mode === "generate_body";
-    const isGenerateBoth = body.mode === "generate_both";
 
     // Usage check: skip for generate_body mode
     if (memberId && !isGenerateBody) {
@@ -226,84 +225,6 @@ ${body.industry ? `\n## 業種\n${body.industry}` : ""}
       const genJson = JSON.parse(genContent);
       // generate_body does NOT increment usage count
       return NextResponse.json({ generatedBody: genJson.generatedBody ?? "" });
-    }
-
-    if (isGenerateBoth) {
-      const styleExamples = [
-        ...(body.goodBodies ?? []).slice(0, 5),
-        ...(body.learningExamples ?? []).slice(0, 3).map((e: LearningExample) => e.body),
-      ].filter(Boolean);
-
-      const styleText = styleExamples.length > 0
-        ? styleExamples.map((b, i) => `【文体例${i + 1}】\n${b}`).join("\n\n")
-        : "なし";
-
-      const categoryCtx = body.category === "オキニトーク"
-        ? `目的: ${body.okiniPurpose || "指定なし"}、関係性: ${body.relationshipLevel || "指定なし"}、温度感: ${body.interestLevel || "指定なし"}、相手タイプ: ${body.partnerType || "指定なし"}、送る時間帯: ${body.sendTime || "指定なし"}`
-        : `狙いたい感情: ${body.emotionTarget || "指定なし"}、目的: ${body.purpose || "指定なし"}、売り別: ${body.sellType || "共通"}`;
-
-      const diagText = body.diagnosisInfo?.typeName
-        ? `診断タイプ: ${body.diagnosisInfo.typeName}\n強み: ${body.diagnosisInfo.strengths ?? ""}\nターゲット: ${body.diagnosisInfo.bestTarget ?? ""}`
-        : "";
-
-      const industryHintBoth = body.industry ? (industryHintMap[body.industry] ?? "") : "";
-
-      const genBothSystemPrompt = `あなたは夜職業界専門のマーケティング戦略家兼トップライターです。ユーザーの過去の成功文章・文体を学習し、そのまま使えるタイトル候補5つと本文1つをゼロから生成します。`;
-
-      const genBothUserPrompt = `以下の条件でカテゴリ「${body.category ?? "写メ日記"}」のタイトル5案と本文1つを生成してください。
-添削ではなく、ゼロから新しい文章を生成してください。
-
-## 生成条件
-${categoryCtx}
-${diagText ? `\n## 診断情報\n${diagText}` : ""}
-${body.industry ? `\n## 業種\n${body.industry}${industryHintBoth ? `\n業種別ポイント: ${industryHintBoth}` : ""}` : ""}
-
-## ユーザーの文体・語尾・絵文字の癖（踏襲すること）
-${styleText}
-
-## 指示
-- タイトルは15〜25文字、スクロールが止まる一文（疑問形・体験ベース・感情直球など）
-- 本文は上記の文体例から語尾・絵文字・改行パターンを分析して踏襲すること
-- 読んだ人が「会いに行きたい」と自然に思える文章にする
-- 営業感・売り込み感を出さない
-- そのままコピペして使える完成形で出力する
-- JSON形式で返すこと:
-{
-  "titleSuggestions": [
-    {"score": <予測スコア整数>, "text": "<タイトル候補>"},
-    {"score": <予測スコア整数>, "text": "<タイトル候補>"},
-    {"score": <予測スコア整数>, "text": "<タイトル候補>"},
-    {"score": <予測スコア整数>, "text": "<タイトル候補>"},
-    {"score": <予測スコア整数>, "text": "<タイトル候補>"}
-  ],
-  "generatedBody": "<生成した本文>"
-}`;
-
-      const genBothRes = await client.chat.completions.create({
-        model,
-        temperature: 0.85,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: genBothSystemPrompt },
-          { role: "user", content: genBothUserPrompt },
-        ],
-      });
-
-      const genBothContent = genBothRes.choices[0]?.message?.content ?? "{}";
-      const genBothJson = JSON.parse(genBothContent);
-
-      // Increment usage count (same as main analyze)
-      if (memberId && memberInfo && memberInfo.plan !== "nbs") {
-        await supabaseAdmin
-          .from("members")
-          .update({ usage_count: (memberInfo.usage_count ?? 0) + 1 })
-          .eq("id", memberId);
-      }
-
-      return NextResponse.json({
-        titleSuggestions: genBothJson.titleSuggestions ?? [],
-        generatedBody: genBothJson.generatedBody ?? "",
-      });
     }
 
     const title = body.title?.trim() ?? "";

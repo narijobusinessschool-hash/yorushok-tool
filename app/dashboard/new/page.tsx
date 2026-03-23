@@ -512,7 +512,6 @@ export default function NewPostPage() {
   const [savedNotice, setSavedNotice] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isGeneratingBody, setIsGeneratingBody] = useState(false);
-  const [isGeneratingBoth, setIsGeneratingBoth] = useState(false);
   const [generatedTitleOptions, setGeneratedTitleOptions] = useState<TitleSuggestion[]>([]);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showFeedbackToast, setShowFeedbackToast] = useState(false);
@@ -1155,89 +1154,12 @@ ${successLine}
     }
   }
 
-  async function handleGenerateBoth() {
-    setIsGeneratingBoth(true);
-    try {
-      const rawExamples = localStorage.getItem("yorushokuLearningExamples");
-      const rawConfig = localStorage.getItem("yorushokuLearningConfig");
-      const rawGoodTitles = localStorage.getItem("yorushokuGoodTitles");
-      const rawGoodBodies = localStorage.getItem("yorushokuGoodBodies");
-      const learningExamples = rawExamples ? JSON.parse(rawExamples) : [];
-      const learningConfig = rawConfig ? JSON.parse(rawConfig) : { ngWords: [], influenceRules: [] };
-      const goodTitles = rawGoodTitles ? JSON.parse(rawGoodTitles) : [];
-      const goodBodies = rawGoodBodies ? JSON.parse(rawGoodBodies) : [];
-
-      const rawUser = localStorage.getItem("yorushokuCurrentUser");
-      const userId = rawUser ? JSON.parse(rawUser).id : undefined;
-
-      const diagnosisInfo = profile
-        ? {
-            typeName: profile.diagnosis.typeName,
-            bestTarget: profile.diagnosis.bestTarget,
-            strengths: profile.diagnosis.strengths,
-            personaText: profile.diagnosis.personaText,
-            uspSummary: profile.usp.summary,
-            positioning: profile.stp.positioning,
-            emotionNeeds: profile.persona.emotionNeeds,
-          }
-        : undefined;
-
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          memberId: userId,
-          mode: "generate_both",
-          category,
-          purpose: category === "写メ日記" ? shameNikkiGoal || undefined : undefined,
-          emotionTarget: category === "写メ日記" ? emotionTarget || undefined : undefined,
-          sellType: category === "写メ日記" ? sellType || undefined : undefined,
-          okiniPurpose: category === "オキニトーク" ? okiniPurpose || undefined : undefined,
-          relationshipLevel: category === "オキニトーク" ? relationshipLevel || undefined : undefined,
-          interestLevel: category === "オキニトーク" ? interestLevel || undefined : undefined,
-          partnerType: category === "オキニトーク" ? partnerType || undefined : undefined,
-          sendTime: category === "オキニトーク" ? sendTime || undefined : undefined,
-          industry: profile?.basic.industry,
-          diagnosisInfo,
-          learningExamples,
-          goodTitles,
-          goodBodies,
-          ngWords: learningConfig.ngWords,
-          influenceRules: learningConfig.influenceRules,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.status === 429 && data.error === "limit_exceeded") {
-        setShowLimitModal(true);
-        return;
-      }
-      if (res.status === 403) {
-        setSavedNotice("ご利用が停止されています。管理者にお問い合わせください。");
-        setTimeout(() => setSavedNotice(""), 5000);
-        return;
-      }
-      if (!res.ok) throw new Error(data.error ?? `API error: ${res.status}`);
-
-      if (data.titleSuggestions?.length > 0) {
-        const sorted = [...data.titleSuggestions].sort((a: TitleSuggestion, b: TitleSuggestion) => b.score - a.score);
-        setGeneratedTitleOptions(sorted);
-        setTitle(sorted[0].text);
-        setGeneratedTitle(sorted[0].text);
-      }
-      if (data.generatedBody) {
-        setText(data.generatedBody);
-      }
-      setSavedNotice("✓ タイトルと本文を生成しました。");
-      setTimeout(() => setSavedNotice(""), 3000);
-    } catch (err) {
-      console.error("生成エラー:", err);
-      const errMsg = err instanceof Error ? err.message : "生成でエラーが発生しました。";
-      setSavedNotice(`⚠ ${errMsg} もう一度お試しください。`);
-      setTimeout(() => setSavedNotice(""), 6000);
-    } finally {
-      setIsGeneratingBoth(false);
+  function handleGenerateTitle() {
+    const suggestions = buildTitleSuggestions();
+    if (suggestions.length > 0) {
+      setGeneratedTitleOptions(suggestions);
+      setTitle(suggestions[0].text);
+      setGeneratedTitle(suggestions[0].text);
     }
   }
 
@@ -1466,17 +1388,13 @@ ${successLine}
                   <div className="mb-5">
                     <button
                       type="button"
-                      onClick={handleGenerateBoth}
-                      disabled={isGeneratingBoth}
-                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#e85d8a] px-5 text-sm font-semibold text-white transition hover:bg-[#d4507c] disabled:opacity-50"
+                      onClick={handleGenerateTitle}
+                      className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#e85d8a] px-5 text-sm font-semibold text-white transition hover:bg-[#d4507c]"
                     >
-                      {isGeneratingBoth ? "生成中…" : "✦ タイトルと本文を生成する"}
-                      {!isGeneratingBoth && (
-                        <span className="rounded-lg bg-white/20 px-2 py-0.5 text-xs font-bold">1ポイント</span>
-                      )}
+                      タイトルを生成
                     </button>
                     <p className="mt-1.5 text-xs text-[#4d4866]">
-                      上の項目を選ぶと、選択内容に沿ったタイトルと本文をAIが生成します
+                      上の項目を選ぶと、選択内容に沿ったタイトル候補を生成します
                     </p>
                   </div>
 
