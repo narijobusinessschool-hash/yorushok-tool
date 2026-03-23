@@ -1168,7 +1168,7 @@ ${successLine}
       const goodBodies = rawGoodBodies ? JSON.parse(rawGoodBodies) : [];
 
       const rawUser = localStorage.getItem("yorushokuCurrentUser");
-      const currentUserId = rawUser ? JSON.parse(rawUser).id : undefined;
+      const userId = rawUser ? JSON.parse(rawUser).id : undefined;
 
       const diagnosisInfo = profile
         ? {
@@ -1186,7 +1186,7 @@ ${successLine}
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          memberId: currentUserId,
+          memberId: userId,
           mode: "generate_both",
           category,
           purpose: category === "写メ日記" ? shameNikkiGoal || undefined : undefined,
@@ -1229,8 +1229,13 @@ ${successLine}
       if (data.generatedBody) {
         setText(data.generatedBody);
       }
+      setSavedNotice("✓ タイトルと本文を生成しました。");
+      setTimeout(() => setSavedNotice(""), 3000);
     } catch (err) {
       console.error("生成エラー:", err);
+      const errMsg = err instanceof Error ? err.message : "生成でエラーが発生しました。";
+      setSavedNotice(`⚠ ${errMsg} もう一度お試しください。`);
+      setTimeout(() => setSavedNotice(""), 6000);
     } finally {
       setIsGeneratingBoth(false);
     }
