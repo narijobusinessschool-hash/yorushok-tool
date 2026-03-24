@@ -48,7 +48,7 @@ export default function UsageCounter({ memberId }: Props) {
 
   if (plan === null || plan === "nbs") return null;
 
-  const remaining = usageLimit - usageCount;
+  const remaining = Math.floor(usageLimit - usageCount);
   const isAtLimit = remaining <= 0;
   const pct = Math.min((usageCount / usageLimit) * 100, 100);
 

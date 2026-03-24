@@ -66,7 +66,42 @@ const industryHintMap: Record<string, string> = {
   女風: "安心感・受容・「ここでなら無理しなくていい」感覚が来店を決める。特別扱いされる体験と、心の余白を作る言葉が刺さる。",
 };
 
+type MemberInfoFull = {
+  plan: string;
+  usage_count: number;
+  usage_limit: number;
+  usage_permission: boolean;
+  nbs_daily_count: number;
+  nbs_daily_date: string;
+};
+
+function getTodayJST(): string {
+  return new Date().toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" }).replace(/\//g, "-");
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function chargePoints(memberId: string, cost: number, memberInfo: MemberInfoFull, adminClient: any, openaiClient: OpenAI) {
+  const currentTotal = Number(memberInfo.usage_count ?? 0);
+  const newTotal = currentTotal + cost;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateData: Record<string, any> = { usage_count: newTotal };
+
+  if (memberInfo.plan === "nbs") {
+    const today = getTodayJST();
+    const isNewDay = memberInfo.nbs_daily_date !== today;
+    const currentDaily = isNewDay ? 0 : Number(memberInfo.nbs_daily_count ?? 0);
+    updateData.nbs_daily_count = currentDaily + cost;
+    updateData.nbs_daily_date = today;
+  }
+
+  await adminClient.from("members").update(updateData).eq("id", memberId);
+
+  // 5ポイント境界を越えたらプロフィール更新
+  if (Math.floor(newTotal / 5) > Math.floor(currentTotal / 5)) {
+    updateUserAiProfile(memberId, adminClient, openaiClient).catch(() => {});
+  }
+}
+
 async function updateUserAiProfile(memberId: string, adminClient: any, openaiClient: OpenAI) {
   const [{ data: recentDrafts }, { data: copyEvents }] = await Promise.all([
     adminClient
@@ -140,7 +175,7 @@ ${copiedText || "なし"}
 }
 
 export async function POST(req: Request) {
-  let memberInfo: { plan: string; usage_count: number; usage_limit: number; usage_permission: boolean } | null = null;
+  let memberInfo: MemberInfoFull | null = null;
 
   try {
     const body = (await req.json()) as RequestBody;
@@ -148,11 +183,11 @@ export async function POST(req: Request) {
     const isGenerateBody = body.mode === "generate_body";
     const isGenerateTitle = body.mode === "generate_title";
 
-    // Usage check: skip for generate_body and generate_title modes
-    if (memberId && !isGenerateBody && !isGenerateTitle) {
+    // 全モード共通: メンバー情報取得・ポイント残量チェック
+    if (memberId) {
       const { data: member, error: memberError } = await supabaseAdmin
         .from("members")
-        .select("plan, usage_count, usage_limit, usage_permission")
+        .select("plan, usage_count, usage_limit, usage_permission, nbs_daily_count, nbs_daily_date")
         .eq("id", memberId)
         .single();
 
@@ -168,12 +203,26 @@ export async function POST(req: Request) {
           );
         }
 
+        const cost = isGenerateBody || isGenerateTitle ? 0.5 : 1;
+
         if (member && member.plan !== "nbs") {
-          const count = member.usage_count ?? 0;
-          const limit = member.usage_limit ?? 20;
-          if (count >= limit) {
+          // 無料会員: ライフタイム20P上限
+          const count = Number(member.usage_count ?? 0);
+          const limit = Number(member.usage_limit ?? 20);
+          if (count + cost > limit) {
             return NextResponse.json(
               { error: "limit_exceeded", message: "20回の無料トライアルを使い切りました。NBSに入会すると無制限で使えます。" },
+              { status: 429 }
+            );
+          }
+        } else if (member && member.plan === "nbs") {
+          // NBS会員: 1日10P上限
+          const today = getTodayJST();
+          const isNewDay = member.nbs_daily_date !== today;
+          const dailyCount = isNewDay ? 0 : Number(member.nbs_daily_count ?? 0);
+          if (dailyCount + cost > 10) {
+            return NextResponse.json(
+              { error: "daily_limit_exceeded", message: "本日の利用上限（10回分）に達しました。明日またご利用ください。" },
               { status: 429 }
             );
           }
@@ -185,14 +234,6 @@ export async function POST(req: Request) {
     let model = "gpt-4o-mini";
     if (memberInfo?.plan === "nbs") {
       model = "gpt-4o";
-    } else if (memberId && !memberInfo) {
-      // Fallback plan check if memberInfo wasn't set (generate_body mode or memberError case)
-      const { data: memberData } = await supabaseAdmin
-        .from("members")
-        .select("plan")
-        .eq("id", memberId)
-        .single();
-      if (memberData?.plan === "nbs") model = "gpt-4o";
     }
 
     // AI学習プロフィールを取得（合成済みプロフィールがあれば使用）
@@ -341,7 +382,10 @@ ${body.industry ? `\n## 業種\n${body.industry}` : ""}
 
       const genContent = genRes.choices[0]?.message?.content ?? "{}";
       const genJson = JSON.parse(genContent);
-      // generate_body does NOT increment usage count
+      // 本文生成: 0.5P消費
+      if (memberId && memberInfo) {
+        await chargePoints(String(memberId), 0.5, memberInfo, supabaseAdmin, client);
+      }
       return NextResponse.json({ generatedBody: genJson.generatedBody ?? "" });
     }
 
@@ -407,7 +451,10 @@ ${goodTitlesText}
 
       const titleContent = titleRes.choices[0]?.message?.content ?? "{}";
       const titleJson = JSON.parse(titleContent);
-      // generate_title does NOT increment usage count (free feature)
+      // タイトル生成: 0.5P消費
+      if (memberId && memberInfo) {
+        await chargePoints(String(memberId), 0.5, memberInfo, supabaseAdmin, client);
+      }
       return NextResponse.json({
         titleSuggestions: titleJson.titleSuggestions ?? [],
       });
@@ -704,32 +751,11 @@ ${outputFormat}`;
 
     const parsed = JSON.parse(content);
 
-    // AFTER successful AI response: increment usage count + save to draft_results
+    // AFTER successful AI response: charge 1P + save to draft_results
     if (memberId && !isGenerateBody) {
-      // Increment usage count (free plan only)
-      if (memberInfo && memberInfo.plan !== "nbs") {
-        const newCount = (memberInfo.usage_count ?? 0) + 1;
-        await supabaseAdmin
-          .from("members")
-          .update({ usage_count: newCount })
-          .eq("id", memberId);
-
-        // 5回ごとにAIプロフィールを非同期更新（コスト最適化）
-        if (newCount % 5 === 0) {
-          updateUserAiProfile(String(memberId), supabaseAdmin, client).catch(() => {});
-        }
-      } else if (memberInfo?.plan === "nbs") {
-        // NBSユーザーも5回ごとにプロフィール更新
-        const { data: nbsMember } = await supabaseAdmin
-          .from("members")
-          .select("usage_count")
-          .eq("id", memberId)
-          .single();
-        const nbsCount = (nbsMember?.usage_count ?? 0) + 1;
-        await supabaseAdmin.from("members").update({ usage_count: nbsCount }).eq("id", memberId);
-        if (nbsCount % 5 === 0) {
-          updateUserAiProfile(String(memberId), supabaseAdmin, client).catch(() => {});
-        }
+      if (memberInfo) {
+        // 添削: 1P消費（free・NBS共通）
+        await chargePoints(String(memberId), 1, memberInfo, supabaseAdmin, client);
       }
 
       // Save to draft_results for AI learning accumulation
