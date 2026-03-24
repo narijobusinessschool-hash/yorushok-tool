@@ -18,7 +18,7 @@ export default function TokushohoPage() {
                 { label: "サービス名", value: "Narijo Business School（略称：NBS）\nAI文章添削ツール（本サービス）" },
                 {
                   label: "販売価格",
-                  value: "各商品ページに記載（表示価格は税込）\n【無料プラン】無料（月10回まで利用可能）\n【NBSプラン】月額9,800円（税込）",
+                  value: "各商品ページに記載（表示価格は税込）\n【無料プラン】無料（初回登録から20回まで利用可能）\n【NBSプラン】月額9,800円（税込）",
                 },
                 {
                   label: "商品代金以外の必要料金",

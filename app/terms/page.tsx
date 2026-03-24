@@ -33,7 +33,7 @@ export default function TermsPage() {
           <section>
             <h2 className="mb-3 text-base font-bold text-[#f2eefb]">第4条（料金・支払い）</h2>
             <ul className="list-disc pl-5 space-y-2">
-              <li><strong className="text-[#f2eefb]">無料プラン：</strong>新規登録後、月10回まで無料でご利用いただけます。</li>
+              <li><strong className="text-[#f2eefb]">無料プラン：</strong>新規登録後、20回まで無料でご利用いただけます。</li>
               <li><strong className="text-[#f2eefb]">有料プラン（NBS）：</strong>月額9,800円（税込）。無制限でご利用いただけます。</li>
               <li>有料プランの料金は、月額パンダ（getsugaku-panda.jp）を通じてお支払いください。</li>
               <li>支払いが完了した旨を管理者にご連絡いただいた後、プランを手動でアップグレードいたします。</li>
