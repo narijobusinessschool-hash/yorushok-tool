@@ -515,6 +515,7 @@ export default function NewPostPage() {
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [generatedTitleOptions, setGeneratedTitleOptions] = useState<TitleSuggestion[]>([]);
   const [showGuide, setShowGuide] = useState(false);
+  const [showUsabilityFeedback, setShowUsabilityFeedback] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showFeedbackToast, setShowFeedbackToast] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState<"使う予定" | "たぶん使う" | "使わない" | null>(null);
@@ -674,6 +675,26 @@ export default function NewPostPage() {
       setCopiedKey("");
     }
   };
+
+  function triggerUsabilityFeedbackIfNeeded() {
+    const key = "yorushokuCompletionCount";
+    const count = parseInt(localStorage.getItem(key) ?? "0", 10) + 1;
+    localStorage.setItem(key, String(count));
+    if (count % 5 === 0) {
+      setTimeout(() => setShowUsabilityFeedback(true), 800);
+    }
+  }
+
+  async function handleUsabilityFeedback(rating: "使える" | "使えない") {
+    const raw = localStorage.getItem("yorushokuCurrentUser");
+    const memberId = raw ? JSON.parse(raw).id : null;
+    await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId, rating, eventType: "usability_feedback", category }),
+    }).catch(() => {});
+    setShowUsabilityFeedback(false);
+  }
 
   const handleFeedbackRating = async (rating: "使う予定" | "たぶん使う" | "使わない") => {
     setFeedbackRating(rating);
@@ -1148,6 +1169,7 @@ ${successLine}
       const json = await res.json();
       if (json.generatedBody) {
         setText(json.generatedBody);
+        triggerUsabilityFeedbackIfNeeded();
       }
     } catch {
       // silent fail
@@ -1257,6 +1279,7 @@ ${successLine}
 
       setResult(nextResult);
       await persistResult(nextResult);
+      triggerUsabilityFeedbackIfNeeded();
       const gaUserRaw = localStorage.getItem("yorushokuCurrentUser");
       const gaPlan = gaUserRaw ? (JSON.parse(gaUserRaw).plan ?? "free") : "free";
       gaGenerateDraft({ category, bodyScore: nextResult.bodyScore, plan: gaPlan, sellType });
@@ -1830,6 +1853,39 @@ ${successLine}
           </aside>
         </div>
       </div>
+
+      {/* 5回に1回の評価収集ポップアップ */}
+      {showUsabilityFeedback && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="relative w-full max-w-sm rounded-[24px] border border-[#231f36] bg-[#110e1c] p-6">
+            <button
+              type="button"
+              onClick={() => setShowUsabilityFeedback(false)}
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[#1e1a2e] text-[#8b84a8] hover:text-[#f2eefb] transition"
+            >
+              ✕
+            </button>
+            <p className="mb-1 text-xs text-[#8b84a8]">フィードバック</p>
+            <p className="mb-5 text-base font-bold text-[#f2eefb]">この提案は使えましたか？</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => handleUsabilityFeedback("使える")}
+                className="flex-1 rounded-2xl border border-[#2f2a45] py-3 text-sm font-semibold text-[#8b84a8] transition hover:border-[#e85d8a]/50 hover:bg-[#1e0a12] hover:text-[#e85d8a]"
+              >
+                👍 使える
+              </button>
+              <button
+                type="button"
+                onClick={() => handleUsabilityFeedback("使えない")}
+                className="flex-1 rounded-2xl border border-[#2f2a45] py-3 text-sm font-semibold text-[#8b84a8] transition hover:border-[#5c1a2e] hover:bg-[#1e0a12] hover:text-[#f87171]"
+              >
+                👎 使えない
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* フィードバックトースト */}
       {showFeedbackToast && (
