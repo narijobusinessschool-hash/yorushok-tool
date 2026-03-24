@@ -87,9 +87,9 @@ export default function SignupPage() {
             ))}
           </div>
 
-          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#3d1429] bg-[#1e0a12] px-4 py-2">
-            <span className="text-xs font-bold text-[#e85d8a]">✦ 初回登録から20回まで無料</span>
-            <span className="text-xs text-[#8b84a8]">登録1分・カード不要</span>
+          <div className="mt-5 rounded-[16px] border border-[#3d1429] bg-[#1e0a12] px-4 py-3 text-center">
+            <p className="text-sm font-bold text-[#e85d8a]">クレジットカード不要。</p>
+            <p className="text-sm text-[#c8c2dc]">メール登録だけで今すぐ使えます。</p>
           </div>
           <p className="mt-3 text-[10px] leading-5 text-[#4d4866]">
             ※ 本サービスは18歳以上対象です。効果には個人差があります。
