@@ -514,6 +514,7 @@ export default function NewPostPage() {
   const [isGeneratingBody, setIsGeneratingBody] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [generatedTitleOptions, setGeneratedTitleOptions] = useState<TitleSuggestion[]>([]);
+  const [showGuide, setShowGuide] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showFeedbackToast, setShowFeedbackToast] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState<"使う予定" | "たぶん使う" | "使わない" | null>(null);
@@ -1305,8 +1306,68 @@ ${successLine}
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
           <section className="xl:col-span-7">
             <div className="rounded-[28px] border border-[#231f36] bg-[#110e1c] p-6 sm:p-8">
+
+              {/* 使い方ガイドモーダル */}
+              {showGuide && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+                  <div className="relative w-full max-w-lg rounded-[24px] border border-[#231f36] bg-[#110e1c] p-6 sm:p-8 max-h-[85vh] overflow-y-auto">
+                    <button
+                      type="button"
+                      onClick={() => setShowGuide(false)}
+                      className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[#1e1a2e] text-[#8b84a8] hover:text-[#f2eefb] transition"
+                    >
+                      ✕
+                    </button>
+                    <h2 className="mb-6 text-base font-bold text-[#f2eefb]">使い方ガイド</h2>
+
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="mb-2 text-sm font-bold text-[#e85d8a]">① 作成済みの日記を添削する</h3>
+                        <p className="text-sm leading-7 text-[#c8c2dc]">
+                          すでに書いた写メ日記・オキニトーク・SNS投稿をそのまま貼り付けてください。AIがスコアをつけて、より効果的な文章に添削します。添削後の文章はそのままコピーして使えます。
+                        </p>
+                      </div>
+
+                      <div>
+                        <h3 className="mb-2 text-sm font-bold text-[#e85d8a]">② カテゴリの使い方</h3>
+                        <ul className="space-y-2 text-sm leading-7 text-[#c8c2dc]">
+                          <li><span className="font-semibold text-[#f2eefb]">写メ日記</span>　…　店舗サイトや日記ページへの投稿用。アクセス増・予約増・本指名増を狙う文章に最適化します。</li>
+                          <li><span className="font-semibold text-[#f2eefb]">オキニトーク</span>　…　LINEやDMで送るメッセージ用。営業感ゼロで自然に再来店を促します。</li>
+                          <li><span className="font-semibold text-[#f2eefb]">SNS</span>　…　Twitter・TikTok・Instagramなどへの投稿用。フォロワーの興味を引く文章にします。</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h3 className="mb-2 text-sm font-bold text-[#e85d8a]">③ タイトル作成</h3>
+                        <p className="text-sm leading-7 text-[#c8c2dc]">
+                          本文を入力して「タイトルを生成」ボタンを押すと、AIがスクロールを止めるタイトル候補を5つ提案します。過去に効果が出たパターンを学習しているため、使うほど精度が上がります。
+                        </p>
+                      </div>
+
+                      <div>
+                        <h3 className="mb-2 text-sm font-bold text-[#e85d8a]">④ 本文作成</h3>
+                        <p className="text-sm leading-7 text-[#c8c2dc]">
+                          「本文を生成」ボタンを押すと、あなたの文体・語尾・絵文字の癖を学習したAIがゼロから本文を作成します。添削データが蓄積されるほど、あなたらしい文章になっていきます。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mb-5 flex items-center justify-between">
+                <span className="text-sm font-medium text-[#c8c2dc]">カテゴリ</span>
+                <button
+                  type="button"
+                  onClick={() => setShowGuide(true)}
+                  className="flex items-center gap-1 rounded-full border border-[#2f2a45] bg-[#0e0c18] px-3 py-1 text-xs text-[#8b84a8] hover:border-[#e85d8a] hover:text-[#e85d8a] transition"
+                >
+                  <span>？</span>
+                  <span>使い方</span>
+                </button>
+              </div>
               <div className="mb-5">
-                <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
+                <label className="sr-only">
                   カテゴリ
                 </label>
                 <select
