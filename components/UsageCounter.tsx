@@ -12,7 +12,7 @@ type Props = {
 export default function UsageCounter({ memberId }: Props) {
   const [plan, setPlan] = useState<string | null>(null);
   const [usageCount, setUsageCount] = useState(0);
-  const [usageLimit, setUsageLimit] = useState(3);
+  const [usageLimit, setUsageLimit] = useState(20);
   const [showModal, setShowModal] = useState(false);
   const firedPromptView = useRef(false);
   const firedLimitReached = useRef(false);
@@ -70,12 +70,12 @@ export default function UsageCounter({ memberId }: Props) {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className={`text-sm font-semibold ${isAtLimit ? "text-[#f87171]" : "text-[#f2eefb]"}`}>
-              {isAtLimit ? "無料添削の上限に達しました" : `無料添削 あと ${remaining} 回使えます`}
+              {isAtLimit ? "無料トライアルの上限に達しました" : `無料トライアル あと ${remaining} 回使えます`}
             </p>
             <p className="mt-0.5 text-xs text-[#8b84a8]">
               {isAtLimit
                 ? "NBSに入会すると無制限で使えます → タップで詳細"
-                : `${usageCount}/${usageLimit}回使用済み`}
+                : `${usageCount}/${usageLimit}回使用済み（初回登録から20回まで無料）`}
             </p>
           </div>
           <span className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold ${

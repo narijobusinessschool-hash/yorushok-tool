@@ -30,7 +30,7 @@ type DiagnosisInfo = {
 
 type RequestBody = {
   memberId?: string;
-  mode?: "generate_body";
+  mode?: "generate_body" | "generate_title";
   title?: string;
   text?: string;
   category?: "写メ日記" | "オキニトーク" | "SNS";
@@ -66,6 +66,79 @@ const industryHintMap: Record<string, string> = {
   女風: "安心感・受容・「ここでなら無理しなくていい」感覚が来店を決める。特別扱いされる体験と、心の余白を作る言葉が刺さる。",
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function updateUserAiProfile(memberId: string, adminClient: any, openaiClient: OpenAI) {
+  const [{ data: recentDrafts }, { data: copyEvents }] = await Promise.all([
+    adminClient
+      .from("draft_results")
+      .select("original_text, improved_text, body_score, title, title_score, category")
+      .eq("member_id", memberId)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    adminClient
+      .from("usage_events")
+      .select("meta")
+      .eq("event_type", "copy_body")
+      .eq("user_id", memberId)
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
+
+  if (!recentDrafts || recentDrafts.length < 3) return;
+
+  const draftsText = (recentDrafts as Array<Record<string, unknown>>)
+    .map((d, i) =>
+      `[${i + 1}] スコア:${d.body_score} カテゴリ:${d.category}\n入力:${String(d.original_text ?? "").slice(0, 200)}\n提案:${String(d.improved_text ?? "").slice(0, 300)}`
+    )
+    .join("\n\n");
+
+  const copiedText =
+    (copyEvents as Array<{ meta: Record<string, string> }>)
+      ?.map((e) => e.meta?.improvedText)
+      .filter(Boolean)
+      .join("\n") ?? "";
+
+  const profilePrompt = `以下はあるユーザーの直近の添削データです。このユーザーの文章パターンを分析してJSONで返してください。
+
+## 直近の添削データ
+${draftsText}
+
+## 実際にコピーして使われた文章
+${copiedText || "なし"}
+
+## 出力形式（JSONのみ）
+{
+  "effectivePatterns": ["効果が出たパターン1", "効果が出たパターン2"],
+  "ineffectivePatterns": ["使われなかった・スコアが低かったパターン1"],
+  "styleTraits": "文体の特徴（語尾・絵文字・改行の癖など）",
+  "avgInputScore": <入力文の平均スコア整数>,
+  "avgOutputScore": <提案文の平均スコア整数>,
+  "improvementAreas": "次回重点改善すべき点",
+  "nextFocusHint": "次の添削・生成で特に意識すべきこと"
+}`;
+
+  const res = await openaiClient.chat.completions.create({
+    model: "gpt-4o-mini",
+    temperature: 0.3,
+    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: "あなたはユーザーの文章パターンを分析するアナリストです。" },
+      { role: "user", content: profilePrompt },
+    ],
+  });
+
+  const profileContent = res.choices[0]?.message?.content;
+  if (!profileContent) return;
+
+  const profileJson = JSON.parse(profileContent);
+  await adminClient
+    .from("user_ai_profiles")
+    .upsert(
+      { member_id: memberId, profile_data: profileJson, updated_at: new Date().toISOString() },
+      { onConflict: "member_id" }
+    );
+}
+
 export async function POST(req: Request) {
   let memberInfo: { plan: string; usage_count: number; usage_limit: number; usage_permission: boolean } | null = null;
 
@@ -73,9 +146,10 @@ export async function POST(req: Request) {
     const body = (await req.json()) as RequestBody;
     const memberId = body.memberId;
     const isGenerateBody = body.mode === "generate_body";
+    const isGenerateTitle = body.mode === "generate_title";
 
-    // Usage check: skip for generate_body mode
-    if (memberId && !isGenerateBody) {
+    // Usage check: skip for generate_body and generate_title modes
+    if (memberId && !isGenerateBody && !isGenerateTitle) {
       const { data: member, error: memberError } = await supabaseAdmin
         .from("members")
         .select("plan, usage_count, usage_limit, usage_permission")
@@ -96,10 +170,10 @@ export async function POST(req: Request) {
 
         if (member && member.plan !== "nbs") {
           const count = member.usage_count ?? 0;
-          const limit = member.usage_limit ?? 10;
+          const limit = member.usage_limit ?? 20;
           if (count >= limit) {
             return NextResponse.json(
-              { error: "limit_exceeded", message: "今月の無料添削回数を使い切りました。NBSに入会すると無制限で使えます。" },
+              { error: "limit_exceeded", message: "20回の無料トライアルを使い切りました。NBSに入会すると無制限で使えます。" },
               { status: 429 }
             );
           }
@@ -121,8 +195,34 @@ export async function POST(req: Request) {
       if (memberData?.plan === "nbs") model = "gpt-4o";
     }
 
+    // AI学習プロフィールを取得（合成済みプロフィールがあれば使用）
+    let userAiProfileText = "";
+    if (memberId) {
+      const { data: aiProfile } = await supabaseAdmin
+        .from("user_ai_profiles")
+        .select("profile_data")
+        .eq("member_id", String(memberId))
+        .single();
+      if (aiProfile?.profile_data) {
+        const p = aiProfile.profile_data as Record<string, unknown>;
+        userAiProfileText = [
+          p.styleTraits ? `文体の特徴: ${p.styleTraits}` : "",
+          Array.isArray(p.effectivePatterns) && p.effectivePatterns.length > 0
+            ? `効果が出たパターン: ${(p.effectivePatterns as string[]).join("、")}`
+            : "",
+          Array.isArray(p.ineffectivePatterns) && p.ineffectivePatterns.length > 0
+            ? `使われなかったパターン（繰り返し禁止）: ${(p.ineffectivePatterns as string[]).join("、")}`
+            : "",
+          p.nextFocusHint ? `次回の重点: ${p.nextFocusHint}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n");
+      }
+    }
+
     // ユーザー自身の学習データを自動取得（承認パターン依存から脱却）
     let autoLearnedBodies: string[] = [];
+    let autoLearnedTitles: string[] = [];
     let copiedTexts: string[] = [];
 
     if (memberId) {
@@ -155,6 +255,24 @@ export async function POST(req: Request) {
         copiedTexts = copyEvents
           .map((e) => e.meta?.improvedText as string)
           .filter(Boolean)
+          .slice(0, 5);
+      }
+
+      // 高スコアタイトルを自動取得（学習用）
+      const { data: highScoreTitles } = await supabaseAdmin
+        .from("draft_results")
+        .select("title, title_score, category")
+        .eq("member_id", Number(memberId))
+        .gte("title_score", 70)
+        .not("title", "is", null)
+        .neq("title", "")
+        .order("title_score", { ascending: false })
+        .limit(10);
+
+      if (highScoreTitles) {
+        autoLearnedTitles = highScoreTitles
+          .filter((d) => d.title && (!body.category || d.category === body.category))
+          .map((d) => d.title as string)
           .slice(0, 5);
       }
     }
@@ -225,6 +343,74 @@ ${body.industry ? `\n## 業種\n${body.industry}` : ""}
       const genJson = JSON.parse(genContent);
       // generate_body does NOT increment usage count
       return NextResponse.json({ generatedBody: genJson.generatedBody ?? "" });
+    }
+
+    if (isGenerateTitle) {
+      const goodTitlesText = (body.goodTitles ?? []).length > 0
+        ? (body.goodTitles ?? []).slice(0, 10).map((t, i) => `${i + 1}. ${t}`).join("\n")
+        : "なし";
+
+      const pastTitlesText = autoLearnedTitles.length > 0
+        ? autoLearnedTitles.map((t, i) => `【高スコアタイトル${i + 1}】${t}`).join("\n")
+        : "まだデータなし（使うほど精度が上がります）";
+
+      const categoryCtxTitle = `狙いたい感情: ${body.emotionTarget || "指定なし"}、目的: ${body.purpose || "指定なし"}、売り別: ${body.sellType || "共通"}`;
+
+      const diagTextTitle = body.diagnosisInfo?.typeName
+        ? `診断タイプ: ${body.diagnosisInfo.typeName}\n強み: ${body.diagnosisInfo.strengths ?? ""}\nターゲット: ${body.diagnosisInfo.bestTarget ?? ""}`
+        : "";
+
+      const industryHintTitle = body.industry ? (industryHintMap[body.industry] ?? "") : "";
+
+      const titleSystemPrompt = `あなたは夜職業界専門のコピーライターです。ユーザーの過去の成功タイトルを学習し、スクロールが止まる・クリックされるタイトル候補を5つ生成します。`;
+
+      const titleUserPrompt = `以下のユーザーデータを参考に、カテゴリ「${body.category ?? "写メ日記"}」のタイトルを5つ生成してください。
+
+## 生成条件
+${categoryCtxTitle}
+${diagTextTitle ? `\n## 診断情報\n${diagTextTitle}` : ""}
+${body.industry ? `\n## 業種\n${body.industry}${industryHintTitle ? `\n業種別ポイント: ${industryHintTitle}` : ""}` : ""}
+
+## このユーザーの過去の高スコアタイトル（最優先で参考にすること）
+${pastTitlesText}
+
+## 実績ある参考タイトル（管理者登録）
+${goodTitlesText}
+
+## タイトル作成ルール
+- 15〜25文字が理想
+- スクロールが止まる一文（疑問形・体験ベース・感情直球など）
+- 読んだ人が「気になる・会いたい」と思える表現
+- 営業感・売り込み感を出さない
+- そのままコピペして使える完成形
+
+## 出力形式（JSONのみ、説明文不要）
+{
+  "titleSuggestions": [
+    {"score": <予測スコア整数>, "text": "<タイトル候補>"},
+    {"score": <予測スコア整数>, "text": "<タイトル候補>"},
+    {"score": <予測スコア整数>, "text": "<タイトル候補>"},
+    {"score": <予測スコア整数>, "text": "<タイトル候補>"},
+    {"score": <予測スコア整数>, "text": "<タイトル候補>"}
+  ]
+}`;
+
+      const titleRes = await client.chat.completions.create({
+        model,
+        temperature: 0.8,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: titleSystemPrompt },
+          { role: "user", content: titleUserPrompt },
+        ],
+      });
+
+      const titleContent = titleRes.choices[0]?.message?.content ?? "{}";
+      const titleJson = JSON.parse(titleContent);
+      // generate_title does NOT increment usage count (free feature)
+      return NextResponse.json({
+        titleSuggestions: titleJson.titleSuggestions ?? [],
+      });
     }
 
     const title = body.title?.trim() ?? "";
@@ -476,11 +662,14 @@ ${goodTitlesText}
 ## 実績ある良い本文（この流れ・言葉選び・余韻を参考にすること）
 ${goodBodiesText}
 
-## このユーザー自身の高スコア文章（自動学習・スコア70点以上）
-${autoLearnedBodies.length > 0 ? autoLearnedBodies.map((b, i) => `【自己学習例${i + 1}】\n${b}`).join("\n\n") : "まだデータなし（添削を重ねるほど精度が上がります）"}
+## このユーザーのAI学習プロフィール（最優先で反映すること）
+${userAiProfileText || "初回使用中 - まだデータなし（使うほど精度が上がります）"}
+
+## このユーザー自身の高スコア文章（直近3件）
+${autoLearnedBodies.slice(0, 3).length > 0 ? autoLearnedBodies.slice(0, 3).map((b, i) => `【自己学習例${i + 1}】\n${b}`).join("\n\n") : "まだデータなし"}
 
 ## このユーザーが実際にコピーして使った文章（最優先学習シグナル）
-${copiedTexts.length > 0 ? copiedTexts.map((t, i) => `【実使用例${i + 1}】\n${t}`).join("\n\n") : "まだデータなし"}
+${copiedTexts.slice(0, 3).length > 0 ? copiedTexts.slice(0, 3).map((t, i) => `【実使用例${i + 1}】\n${t}`).join("\n\n") : "まだデータなし"}
 
 ## 使用禁止ワード
 ${ngWordsText}
@@ -519,10 +708,28 @@ ${outputFormat}`;
     if (memberId && !isGenerateBody) {
       // Increment usage count (free plan only)
       if (memberInfo && memberInfo.plan !== "nbs") {
+        const newCount = (memberInfo.usage_count ?? 0) + 1;
         await supabaseAdmin
           .from("members")
-          .update({ usage_count: (memberInfo.usage_count ?? 0) + 1 })
+          .update({ usage_count: newCount })
           .eq("id", memberId);
+
+        // 5回ごとにAIプロフィールを非同期更新（コスト最適化）
+        if (newCount % 5 === 0) {
+          updateUserAiProfile(String(memberId), supabaseAdmin, client).catch(() => {});
+        }
+      } else if (memberInfo?.plan === "nbs") {
+        // NBSユーザーも5回ごとにプロフィール更新
+        const { data: nbsMember } = await supabaseAdmin
+          .from("members")
+          .select("usage_count")
+          .eq("id", memberId)
+          .single();
+        const nbsCount = (nbsMember?.usage_count ?? 0) + 1;
+        await supabaseAdmin.from("members").update({ usage_count: nbsCount }).eq("id", memberId);
+        if (nbsCount % 5 === 0) {
+          updateUserAiProfile(String(memberId), supabaseAdmin, client).catch(() => {});
+        }
       }
 
       // Save to draft_results for AI learning accumulation

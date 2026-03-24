@@ -512,6 +512,7 @@ export default function NewPostPage() {
   const [savedNotice, setSavedNotice] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isGeneratingBody, setIsGeneratingBody] = useState(false);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [generatedTitleOptions, setGeneratedTitleOptions] = useState<TitleSuggestion[]>([]);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showFeedbackToast, setShowFeedbackToast] = useState(false);
