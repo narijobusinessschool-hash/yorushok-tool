@@ -125,7 +125,7 @@ export default function PermissionsPage() {
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${m.plan === "nbs" ? "bg-[#f4e2ea] text-[#7a2e4d]" : "bg-[#f0ecf4] text-[#9b92a4]"}`}>
                       {m.plan === "nbs" ? "NBS" : "無料"}
                     </span>
-                    <span className="text-xs text-[#4d4866]">{m.usage_count ?? 0}/{m.usage_limit ?? 3}回</span>
+                    <span className="text-xs text-[#4d4866]">{m.usage_count ?? 0}/{m.usage_limit ?? 20}回</span>
                   </div>
                 </div>
 

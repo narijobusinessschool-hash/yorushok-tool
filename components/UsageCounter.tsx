@@ -12,7 +12,7 @@ type Props = {
 export default function UsageCounter({ memberId }: Props) {
   const [plan, setPlan] = useState<string | null>(null);
   const [usageCount, setUsageCount] = useState(0);
-  const [usageLimit, setUsageLimit] = useState(3);
+  const [usageLimit, setUsageLimit] = useState(20);
   const [showModal, setShowModal] = useState(false);
   const firedPromptView = useRef(false);
   const firedLimitReached = useRef(false);
@@ -27,7 +27,7 @@ export default function UsageCounter({ memberId }: Props) {
         if (data) {
           setPlan(data.plan);
           setUsageCount(data.usage_count ?? 0);
-          setUsageLimit(data.usage_limit ?? 3);
+          setUsageLimit(data.usage_limit ?? 20);
         }
       });
   }, [memberId]);

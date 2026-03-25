@@ -8,7 +8,6 @@ import { gaLogin } from "@/lib/ga";
 
 const SAVED_LOGIN_KEY = "yorushokuSavedLogin";
 const CURRENT_USER_KEY = "yorushokuCurrentUser";
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24時間
 
 export default function Home() {
   const router = useRouter();
@@ -22,10 +21,8 @@ export default function Home() {
   useEffect(() => {
     const saved = localStorage.getItem(SAVED_LOGIN_KEY);
     if (saved) {
-      const { email: savedEmail, password: savedPassword, savedAt } = JSON.parse(saved);
-      const isWithin24h = savedAt && Date.now() - savedAt < SESSION_TTL_MS;
+      const { email: savedEmail } = JSON.parse(saved);
       setEmail(savedEmail ?? "");
-      if (isWithin24h && savedPassword) setPassword(savedPassword);
       setRememberMe(true);
     }
   }, []);
@@ -59,7 +56,6 @@ export default function Home() {
       if (rememberMe) {
         localStorage.setItem(SAVED_LOGIN_KEY, JSON.stringify({
           email: email.trim(),
-          password,
           savedAt: Date.now(),
         }));
       } else {

@@ -67,7 +67,7 @@ const industryHintMap: Record<string, string> = {
 };
 
 export async function POST(req: Request) {
-  let memberInfo: { plan: string; usage_count: number; usage_limit: number; usage_permission: boolean } | null = null;
+  let memberInfo: { plan: string; usage_count: number; usage_limit: number; usage_permission: boolean; usage_reset_month?: string | null } | null = null;
 
   try {
     const body = (await req.json()) as RequestBody;
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     if (memberId && !isGenerateBody) {
       const { data: member, error: memberError } = await supabaseAdmin
         .from("members")
-        .select("plan, usage_count, usage_limit, usage_permission")
+        .select("plan, usage_count, usage_limit, usage_permission, usage_reset_month")
         .eq("id", memberId)
         .single();
 
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
       } else {
         memberInfo = member;
 
-        if (member && !member.usage_permission) {
+        if (member && member.usage_permission === false) {
           return NextResponse.json(
             { error: "permission_denied", message: "現在ご利用が停止されています。管理者にお問い合わせください。" },
             { status: 403 }
@@ -95,8 +95,18 @@ export async function POST(req: Request) {
         }
 
         if (member && member.plan !== "nbs") {
-          const count = member.usage_count ?? 0;
-          const limit = member.usage_limit ?? 10;
+          // 月次リセットチェック（usage_reset_monthカラムが存在する場合）
+          const currentMonth = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit" }).replace("/", "-").slice(0, 7);
+          if (member.usage_reset_month !== undefined && member.usage_reset_month !== currentMonth) {
+            await supabaseAdmin
+              .from("members")
+              .update({ usage_count: 0, usage_reset_month: currentMonth })
+              .eq("id", memberId);
+            memberInfo = { ...member, usage_count: 0, usage_reset_month: currentMonth };
+          }
+
+          const count = memberInfo?.usage_count ?? 0;
+          const limit = memberInfo?.usage_limit ?? 20;
           if (count >= limit) {
             return NextResponse.json(
               { error: "limit_exceeded", message: "今月の無料添削回数を使い切りました。NBSに入会すると無制限で使えます。" },
@@ -515,7 +525,7 @@ ${outputFormat}`;
 
     const parsed = JSON.parse(content);
 
-    // AFTER successful AI response: increment usage count + save to draft_results
+    // AFTER successful AI response: increment usage count
     if (memberId && !isGenerateBody) {
       // Increment usage count (free plan only)
       if (memberInfo && memberInfo.plan !== "nbs") {
@@ -524,22 +534,7 @@ ${outputFormat}`;
           .update({ usage_count: (memberInfo.usage_count ?? 0) + 1 })
           .eq("id", memberId);
       }
-
-      // Save to draft_results for AI learning accumulation
-      const draftId = crypto.randomUUID();
-      await supabaseAdmin.from("draft_results").insert({
-        id: draftId,
-        member_id: memberId,
-        category,
-        title: title || "",
-        original_text: text || "",
-        improved_text: parsed.bodyImproved ?? "",
-        title_score: parsed.titleScore ?? null,
-        body_score: parsed.bodyScore ?? 0,
-        industry: industry || "",
-        purpose: (category === "写メ日記" ? body.purpose : body.okiniPurpose) ?? "",
-        status: "下書き",
-      }).then(undefined, () => {}); // Non-blocking, client-side also saves
+      // Note: draft_results is saved by the client-side persistResult() to avoid duplicates
     }
 
     logEvent("analyze_success", memberId ?? undefined, {

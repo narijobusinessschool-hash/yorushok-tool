@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     if (data.status === "解約") {
       return NextResponse.json({ error: "このアカウントは解約済みです。管理者にお問い合わせください。" }, { status: 403 });
     }
-    if (!data.usage_permission) {
+    if (data.usage_permission === false) {
       return NextResponse.json({ error: "現在このアカウントの利用が制限されています。管理者にお問い合わせください。" }, { status: 403 });
     }
 

@@ -40,7 +40,7 @@ export async function POST(req: Request) {
         status: "契約中",
         plan: "free",
         usage_count: 0,
-        usage_limit: 3,
+        usage_limit: 20,
         usage_permission: true,
         note: "",
       })
