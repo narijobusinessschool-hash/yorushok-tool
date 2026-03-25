@@ -90,7 +90,7 @@ export default function Home() {
         name: "無料プラン",
         price: "0",
         priceCurrency: "JPY",
-        description: "月10回まで無料で写メ日記を添削",
+        description: "初回登録から20回まで無料で写メ日記を添削",
       },
       {
         "@type": "Offer",
@@ -232,7 +232,7 @@ export default function Home() {
         <p className="mt-6 text-center text-sm text-[#8b84a8]">
           まだアカウントをお持ちでない方は{" "}
           <a href="/signup" className="font-semibold text-[#e85d8a] hover:underline">
-            無料で月10回試す →
+            無料で20回試す →
           </a>
         </p>
       </div>
