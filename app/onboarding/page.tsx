@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -365,6 +365,67 @@ export default function OnboardingPage() {
   const [shopUrl, setShopUrl] = useState("");
   const [selectedPrefecture, setSelectedPrefecture] = useState("");
   const [priceRange, setPriceRange] = useState("");
+
+  // 既存の診断データがあればフォームにプリフィル
+  useEffect(() => {
+    async function loadExisting() {
+      const raw = localStorage.getItem("yorushokuCurrentUser");
+      if (!raw) return;
+      const currentUser = JSON.parse(raw);
+
+      // DB優先で取得、なければlocalStorage
+      let profile = null;
+      const { data } = await supabase
+        .from("member_profiles")
+        .select("profile_data")
+        .eq("member_id", currentUser.id)
+        .single();
+      if (data?.profile_data) {
+        profile = data.profile_data;
+      } else {
+        const saved = localStorage.getItem("yorushokuPersonaProfile");
+        if (saved) profile = JSON.parse(saved);
+      }
+      if (!profile) return;
+
+      // basic
+      if (profile.basic) {
+        setSelectedSellType(profile.basic.sellType || "");
+        setSelectedCharacter(profile.basic.character || "");
+        setSelectedIndustry(profile.basic.industry || "");
+        setSelectedMainGoal(profile.basic.mainGoal || "");
+        setSelectedPrefecture(profile.basic.prefecture || "");
+        setPriceRange(profile.basic.priceRange || "");
+        setShopUrl(profile.basic.shopUrl || "");
+      }
+      // persona
+      if (profile.persona) {
+        setSelectedAgeRange(profile.persona.ageRange || "");
+        setSelectedJobType(profile.persona.jobType || "");
+        setSelectedLifestyle(profile.persona.lifestyle || []);
+        setSelectedVisitReasons(profile.persona.visitReasons || []);
+        setSelectedEmotionNeeds(profile.persona.emotionNeeds || []);
+        setSelectedWorries(profile.persona.worries || []);
+        setSelectedTriggers(profile.persona.triggers || []);
+        setSelectedTone(profile.persona.tone || []);
+        setSelectedSources(profile.persona.sources || []);
+        setSelectedDecisionPoints(profile.persona.decisionPoints || []);
+      }
+      // usp
+      if (profile.usp) {
+        setSelectedImpressions(profile.usp.impressions || []);
+        setSelectedStrengthStyles(profile.usp.strengthStyles || []);
+        setSelectedRepeatReasons(profile.usp.repeatReasons || []);
+      }
+      // stp
+      if (profile.stp) {
+        setSelectedSegmentType(profile.stp.segment || "");
+        setSelectedTargetPriority(profile.stp.target || "");
+        setSelectedPositioning(profile.stp.positioning || "");
+      }
+    }
+    loadExisting();
+  }, []);
 
   const personaSummary = useMemo(() => {
     const chunks = [];
