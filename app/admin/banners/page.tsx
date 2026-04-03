@@ -274,7 +274,7 @@ export default function AdminBannersPage() {
                     onChange={handleFileUpload}
                     className="w-full rounded-xl border border-[#d8d3dc] bg-[#faf8fb] px-4 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#e85d8a] file:px-3 file:py-1 file:text-sm file:font-medium file:text-white"
                   />
-                  <p className="mt-1 text-xs text-[#8b84a8]">推奨サイズ: 1200×240px（5:1）、最大5MB</p>
+                  <p className="mt-1 text-xs text-[#8b84a8]">推奨サイズ: 1200×400px（3:1）、スマホ・PC両対応。最大5MB</p>
                 </div>
               )}
 
@@ -460,7 +460,8 @@ export default function AdminBannersPage() {
         <div className="mt-8 rounded-2xl border border-[#d8d3dc] bg-white p-6">
           <h3 className="mb-2 text-sm font-bold text-[#4d4855]">バナー設定について</h3>
           <ul className="space-y-1 text-xs leading-5 text-[#6b6472]">
-            <li>・推奨画像サイズ: <strong>1200×240px</strong>（横長 5:1比率）</li>
+            <li>・推奨画像サイズ: <strong>1200×400px</strong>（横長 3:1比率）</li>
+            <li>・スマホでは3:1、タブレットでは4:1、PCでは5:1で自動調整されます</li>
             <li>・「表示中」のバナーのみダッシュボードに表示されます</li>
             <li>・バナーは自動でスライド表示されます（5秒間隔）</li>
             <li>・ドラッグ＆ドロップで表示順を変更できます</li>
