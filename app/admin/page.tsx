@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import AdminNotifier from "@/components/AdminNotifier";
 
 type SavedDraftResult = {
@@ -255,13 +256,56 @@ export default function AdminPage() {
     setDragOverId(null);
   }
 
+  // Supabaseから全ユーザーの添削データ・成果データを取得
   useEffect(() => {
-    const rawDrafts = localStorage.getItem("yorushokuDraftResults");
-    const rawOutcomes = localStorage.getItem("yorushokuDraftOutcomes");
-    const rawApproved = localStorage.getItem("yorushokuApprovedPatterns");
+    async function fetchFromDb() {
+      const [{ data: allDrafts }, { data: allOutcomes }] = await Promise.all([
+        supabase
+          .from("draft_results")
+          .select("id, created_at, category, title, original_text, improved_text, title_score, body_score, profile_type_name, industry, prefecture, purpose, status")
+          .order("created_at", { ascending: false })
+          .limit(500),
+        supabase
+          .from("draft_outcomes")
+          .select("draft_id, used, reservation, nomination, visit, memo, updated_at"),
+      ]);
 
-    if (rawDrafts) setDrafts(JSON.parse(rawDrafts));
-    if (rawOutcomes) setOutcomes(JSON.parse(rawOutcomes));
+      if (allDrafts) {
+        setDrafts(allDrafts.map((d) => ({
+          id: d.id,
+          createdAt: d.created_at,
+          category: d.category,
+          title: d.title,
+          originalText: d.original_text,
+          improvedText: d.improved_text,
+          titleScore: d.title_score ?? undefined,
+          bodyScore: d.body_score,
+          profileTypeName: d.profile_type_name,
+          industry: d.industry,
+          prefecture: d.prefecture,
+          purpose: d.purpose,
+          status: d.status,
+        })));
+      }
+
+      if (allOutcomes) {
+        const map: OutcomeMap = {};
+        allOutcomes.forEach((o) => {
+          map[o.draft_id] = {
+            used: o.used,
+            reservation: o.reservation,
+            nomination: o.nomination,
+            visit: o.visit,
+            memo: o.memo,
+            updatedAt: o.updated_at,
+          };
+        });
+        setOutcomes(map);
+      }
+    }
+    fetchFromDb();
+
+    const rawApproved = localStorage.getItem("yorushokuApprovedPatterns");
     if (rawApproved) setApprovedPatterns(JSON.parse(rawApproved));
 
     const rawTitles = localStorage.getItem(GOOD_TITLES_KEY);
