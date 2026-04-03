@@ -53,28 +53,45 @@ export default function AdminBannersPage() {
     fetchBanners();
   }, []);
 
-  // 画像ファイルをBase64 DataURLに変換（Supabase Storageを使わない簡易方式）
+  // 画像ファイルを圧縮してBase64 DataURLに変換
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 5MB制限
-    if (file.size > 5 * 1024 * 1024) {
-      flash("ファイルサイズは5MB以下にしてください");
+    // 10MB制限
+    if (file.size > 10 * 1024 * 1024) {
+      flash("ファイルサイズは10MB以下にしてください");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
+    // 画像を読み込んでCanvas経由で圧縮
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const canvas = document.createElement("canvas");
+      // 最大幅1200pxにリサイズ（バナー推奨サイズ）
+      const maxW = 1200;
+      const scale = img.width > maxW ? maxW / img.width : 1;
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      // JPEG 85%品質で圧縮（十分きれいでファイルサイズ小）
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
       setNewImageUrl(dataUrl);
+      flash("画像を読み込みました");
     };
-    reader.readAsDataURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      flash("画像の読み込みに失敗しました");
+    };
+    img.src = objectUrl;
   }
 
   async function handleAdd() {
     if (!newImageUrl.trim()) {
-      flash("画像URLを入力してください");
+      flash(uploadMode === "url" ? "画像URLを入力してください" : "画像ファイルを選択してください");
       return;
     }
     setSaving(true);
@@ -274,7 +291,10 @@ export default function AdminBannersPage() {
                     onChange={handleFileUpload}
                     className="w-full rounded-xl border border-[#d8d3dc] bg-[#faf8fb] px-4 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#e85d8a] file:px-3 file:py-1 file:text-sm file:font-medium file:text-white"
                   />
-                  <p className="mt-1 text-xs text-[#8b84a8]">推奨サイズ: 1200×400px（3:1）、スマホ・PC両対応。最大5MB</p>
+                  <p className="mt-1 text-xs text-[#8b84a8]">推奨サイズ: 1200×400px（3:1）、スマホ・PC両対応。最大10MB</p>
+                  {newImageUrl && newImageUrl.startsWith("data:") && (
+                    <p className="mt-1 text-xs font-medium text-[#1f7a43]">画像を読み込み済み</p>
+                  )}
                 </div>
               )}
 
@@ -285,7 +305,7 @@ export default function AdminBannersPage() {
                     src={newImageUrl}
                     alt="プレビュー"
                     className="w-full object-cover"
-                    style={{ aspectRatio: "5 / 1" }}
+                    style={{ aspectRatio: "3 / 1" }}
                   />
                 </div>
               )}
@@ -465,7 +485,7 @@ export default function AdminBannersPage() {
             <li>・「表示中」のバナーのみダッシュボードに表示されます</li>
             <li>・バナーは自動でスライド表示されます（5秒間隔）</li>
             <li>・ドラッグ＆ドロップで表示順を変更できます</li>
-            <li>・画像URLまたはファイルアップロードで追加できます</li>
+            <li>・画像URLまたはファイルアップロード（最大10MB）で追加できます</li>
             <li>・最大10件まで登録可能です</li>
           </ul>
         </div>
