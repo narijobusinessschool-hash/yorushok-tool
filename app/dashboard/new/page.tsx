@@ -645,13 +645,19 @@ export default function NewPostPage() {
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(""), 1600);
 
-      if (isBodyResult) {
-        // コピーイベントを記録（本音ログ）
+      // コピーイベントを記録（本文・タイトル両方）
+      const isCopyTarget = isBodyResult || key.startsWith("title-");
+      if (isCopyTarget) {
         const rawUser = localStorage.getItem("yorushokuCurrentUser");
         const currentUser = rawUser ? JSON.parse(rawUser) : null;
         const resultId = result ? (result as AnalysisResult & { id?: string }).id : null;
-        setLastCopiedResultId(resultId ?? null);
-        setLastCopiedText(value);
+        const copyType = isBodyResult ? "body" : "title";
+
+        if (isBodyResult) {
+          setLastCopiedResultId(resultId ?? null);
+          setLastCopiedText(value);
+        }
+
         fetch("/api/feedback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -660,16 +666,20 @@ export default function NewPostPage() {
             draftResultId: resultId,
             eventType: "copy",
             improvedText: value,
+            copyType,
+            title: result ? (result as AnalysisResult).titleSuggestions?.find((_, idx) => key === `title-${idx}`)?.text ?? "" : "",
             category,
           }),
         }).catch(() => {});
 
-        // 3秒後にトーストを表示
-        setTimeout(() => {
-          setShowFeedbackToast(true);
-          setFeedbackRating(null);
-          setShowFeedbackReason(false);
-        }, 3000);
+        // 本文コピー後のみフィードバックトーストを表示
+        if (isBodyResult) {
+          setTimeout(() => {
+            setShowFeedbackToast(true);
+            setFeedbackRating(null);
+            setShowFeedbackReason(false);
+          }, 3000);
+        }
       }
     } catch {
       setCopiedKey("");

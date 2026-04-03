@@ -160,9 +160,6 @@ export default function DashboardPage() {
           <h1 className="mt-2 text-2xl font-bold sm:text-3xl">今日の文章を整えよう</h1>
         </header>
 
-        {/* アフィリエイトバナー */}
-        <BannerSlider />
-
         {/* 使用回数カウンター（freeプランのみ表示） */}
         {currentUserId && (
           <div className="mb-6">
@@ -218,7 +215,7 @@ export default function DashboardPage() {
         </div>
 
         {/* サブアクション */}
-        <div className="mb-6 grid grid-cols-2 gap-3">
+        <div className="mb-4 grid grid-cols-2 gap-3">
           {[
             { title: "成果を記録", desc: "使った文章の反応を入力", href: "/dashboard/results" },
             { title: "マイページ", desc: "診断結果やUSPを確認", href: "/mypage" },
@@ -233,6 +230,9 @@ export default function DashboardPage() {
             </a>
           ))}
         </div>
+
+        {/* アフィリエイトバナー */}
+        <BannerSlider />
 
       </div>
     </main>

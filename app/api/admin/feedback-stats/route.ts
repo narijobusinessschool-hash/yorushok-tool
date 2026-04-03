@@ -24,11 +24,17 @@ export async function GET() {
       .order("created_at", { ascending: false })
       .limit(200);
 
-    // 添削総数（generate イベント）
-    const { count: totalGenerates } = await supabaseAdmin
-      .from("usage_events")
-      .select("*", { count: "exact", head: true })
-      .eq("event_type", "generate");
+    // 添削総数（generateイベント or draft_resultsのどちらか大きい方を採用）
+    const [{ count: generateEventCount }, { count: draftResultCount }] = await Promise.all([
+      supabaseAdmin
+        .from("usage_events")
+        .select("*", { count: "exact", head: true })
+        .eq("event_type", "generate"),
+      supabaseAdmin
+        .from("draft_results")
+        .select("*", { count: "exact", head: true }),
+    ]);
+    const totalGenerates = Math.max(generateEventCount ?? 0, draftResultCount ?? 0);
 
     const copies = copyEvents ?? [];
     const feedbacks = feedbackEvents ?? [];
@@ -60,10 +66,12 @@ export async function GET() {
       createdAt: f.created_at,
     }));
 
-    // 直近のコピー一覧（文章付き・評価未回答含む）
+    // 直近のコピー一覧（タイトル・copyType付き）
     const recentCopies = copies.slice(0, 30).map((c) => ({
       userId: c.user_id,
       improvedText: c.meta?.improvedText ?? null,
+      copyType: c.meta?.copyType ?? "body",
+      title: c.meta?.title ?? null,
       category: c.meta?.category ?? null,
       createdAt: c.created_at,
     }));
@@ -71,7 +79,7 @@ export async function GET() {
     return NextResponse.json({
       totalCopies: copies.length,
       totalFeedbacks: feedbacks.length,
-      totalGenerates: totalGenerates ?? 0,
+      totalGenerates,
       copyRate: totalGenerates ? Math.round((copies.length / totalGenerates) * 100) : 0,
       feedbackRate: copies.length ? Math.round((feedbacks.length / copies.length) * 100) : 0,
       ratingCount,

@@ -15,6 +15,8 @@ type RecentFeedback = {
 type RecentCopy = {
   userId: string | null;
   improvedText: string | null;
+  copyType: string | null;
+  title: string | null;
   category: string | null;
   createdAt: string;
 };
@@ -282,6 +284,9 @@ export default function FeedbackPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="rounded-full bg-[#4ade80]/10 px-2.5 py-0.5 text-xs font-bold text-[#4ade80]">コピー</span>
+                    <span className="rounded-full bg-[#2f2a45] px-2.5 py-0.5 text-xs font-semibold text-[#c8c2dc]">
+                      {c.copyType === "title" ? "タイトル" : "本文"}
+                    </span>
                     {c.category && (
                       <span className="rounded-full border border-[#2f2a45] px-2.5 py-0.5 text-xs text-[#8b84a8]">{c.category}</span>
                     )}
@@ -307,9 +312,20 @@ export default function FeedbackPage() {
                       {expandedIdx === i + 1000 ? "▲ 文章を隠す" : "▼ コピーされた文章を見る"}
                     </button>
                     {expandedIdx === i + 1000 && (
-                      <p className="mt-2 rounded-xl bg-[#0e0c18] px-4 py-3 text-sm leading-7 text-[#c8c2dc] whitespace-pre-wrap">
-                        {c.improvedText}
-                      </p>
+                      <div className="mt-2 space-y-2">
+                        {c.title && (
+                          <div>
+                            <p className="mb-1 text-xs text-[#8b84a8]">タイトル</p>
+                            <p className="rounded-xl bg-[#0e0c18] px-4 py-2 text-sm font-semibold text-[#f2eefb]">{c.title}</p>
+                          </div>
+                        )}
+                        <div>
+                          {c.title && <p className="mb-1 text-xs text-[#8b84a8]">{c.copyType === "title" ? "コピーされたタイトル" : "本文"}</p>}
+                          <p className="rounded-xl bg-[#0e0c18] px-4 py-3 text-sm leading-7 text-[#c8c2dc] whitespace-pre-wrap">
+                            {c.improvedText}
+                          </p>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}

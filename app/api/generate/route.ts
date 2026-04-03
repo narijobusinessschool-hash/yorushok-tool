@@ -775,6 +775,15 @@ ${outputFormat}`;
       }).then(undefined, () => {}); // Non-blocking, client-side also saves
     }
 
+    // 添削イベントを記録（総添削数・コピー率の計算用）
+    if (memberId) {
+      supabaseAdmin.from("usage_events").insert({
+        event_type: "generate",
+        user_id: String(memberId),
+        meta: { category, bodyScore: parsed.bodyScore, titleScore: parsed.titleScore },
+      }).then(undefined, () => {});
+    }
+
     logEvent("analyze_success", memberId ?? undefined, {
       category,
       bodyScore: parsed.bodyScore,
