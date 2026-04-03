@@ -35,7 +35,7 @@ export default function BannerSlider() {
 
   return (
     <div className="mb-6">
-      {/* バナー表示エリア - 横幅いっぱい、アスペクト比 5:1 推奨 */}
+      {/* バナー表示エリア - スマホ 3:1 / PC 5:1 レスポンシブ */}
       <div className="relative overflow-hidden rounded-[16px]">
         <div
           className="flex transition-transform duration-500 ease-in-out"
@@ -46,8 +46,10 @@ export default function BannerSlider() {
               <img
                 src={b.image_url}
                 alt={b.title || "バナー"}
-                className="w-full object-cover"
-                style={{ aspectRatio: "5 / 1" }}
+                className="w-full object-cover aspect-[3/1] sm:aspect-[4/1] lg:aspect-[5/1]"
+                width={800}
+                height={267}
+                loading="lazy"
                 draggable={false}
               />
             );
