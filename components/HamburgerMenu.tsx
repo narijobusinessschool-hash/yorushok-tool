@@ -195,6 +195,13 @@ export default function HamburgerMenu() {
                 </div>
               )}
               <Link
+                href="/onboarding"
+                onClick={() => setOpen(false)}
+                className={`block px-4 py-2.5 text-sm transition hover:bg-[#faf7fc] ${pathname === "/onboarding" ? "font-semibold text-[#a3476b]" : "text-[#2c2933]"}`}
+              >
+                診断
+              </Link>
+              <Link
                 href="/mypage"
                 onClick={() => setOpen(false)}
                 className={`block px-4 py-2.5 text-sm transition hover:bg-[#faf7fc] ${pathname === "/mypage" ? "font-semibold text-[#a3476b]" : "text-[#2c2933]"}`}

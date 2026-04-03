@@ -49,7 +49,7 @@ export default function SignupPage() {
       localStorage.setItem("yorushokuCurrentUser", JSON.stringify(data));
       document.cookie = `yorushoku_session=${encodeURIComponent(JSON.stringify({ role: data.role }))}; path=/; max-age=86400`;
       gaSignUp();
-      router.push("/onboarding");
+      router.push("/dashboard");
     } catch {
       setError("登録処理中にエラーが発生しました。");
     } finally {

@@ -65,14 +65,7 @@ export default function Home() {
       if (data.role === "管理者") {
         router.push("/admin");
       } else {
-        // DBでプロフィール有無を確認（端末・ブラウザをまたいでも正しくルーティング）
-        const { data: profileData } = await supabase
-          .from("member_profiles")
-          .select("member_id")
-          .eq("member_id", data.id)
-          .single();
-        const hasProfile = !!profileData || !!localStorage.getItem("yorushokuPersonaProfile");
-        router.push(hasProfile ? "/dashboard" : "/onboarding");
+        router.push("/dashboard");
       }
     } catch (err) {
       logError("login_exception", "ログイン処理中に予期せぬエラー", { message: String(err) });
