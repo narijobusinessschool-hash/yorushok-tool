@@ -65,6 +65,15 @@ export default function Home() {
       if (data.role === "管理者") {
         router.push("/admin");
       } else {
+        // DBからプロフィールをlocalStorageに同期（端末変更・キャッシュクリア時の復元）
+        const { data: profileData } = await supabase
+          .from("member_profiles")
+          .select("profile_data")
+          .eq("member_id", data.id)
+          .single();
+        if (profileData?.profile_data) {
+          localStorage.setItem("yorushokuPersonaProfile", JSON.stringify(profileData.profile_data));
+        }
         router.push("/dashboard");
       }
     } catch (err) {

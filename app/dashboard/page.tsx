@@ -68,17 +68,18 @@ export default function DashboardPage() {
       setPlan(memberData?.plan ?? "free");
       setLoading(false);
 
-      // 診断未完了ならポップアップ表示
-      const hasLocalProfile = !!localStorage.getItem("yorushokuPersonaProfile");
-      if (!hasLocalProfile) {
-        const { data: profileData } = await supabase
-          .from("member_profiles")
-          .select("member_id")
-          .eq("member_id", currentUser.id)
-          .single();
-        if (!profileData) {
-          setShowDiagPopup(true);
-        }
+      // 診断未完了ならポップアップ表示（DB優先で確認）
+      const { data: profileData } = await supabase
+        .from("member_profiles")
+        .select("profile_data")
+        .eq("member_id", currentUser.id)
+        .single();
+      if (profileData?.profile_data) {
+        // DBにプロフィールがあればlocalStorageにも同期（復元）
+        localStorage.setItem("yorushokuPersonaProfile", JSON.stringify(profileData.profile_data));
+      } else if (!localStorage.getItem("yorushokuPersonaProfile")) {
+        // DBにもlocalStorageにもなければポップアップ表示
+        setShowDiagPopup(true);
       }
 
       if (!allDrafts || allDrafts.length === 0) {
