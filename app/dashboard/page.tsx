@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import UsageCounter from "@/components/UsageCounter";
+import BannerSlider from "@/components/BannerSlider";
 
 type DraftRow = {
   id: string;
@@ -118,6 +119,9 @@ export default function DashboardPage() {
           <p className="text-xs font-semibold tracking-widest text-[#e85d8a] uppercase">Dashboard</p>
           <h1 className="mt-2 text-2xl font-bold sm:text-3xl">今日の文章を整えよう</h1>
         </header>
+
+        {/* アフィリエイトバナー */}
+        <BannerSlider />
 
         {/* 使用回数カウンター（freeプランのみ表示） */}
         {currentUserId && (
