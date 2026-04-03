@@ -108,7 +108,6 @@ export default function DashboardPage() {
       ? Math.round(drafts.reduce((sum, d) => sum + d.body_score, 0) / drafts.length)
       : 0;
 
-  const recentDrafts = drafts.slice(0, 5);
   const isNbs = plan === "nbs";
 
   const stats = [
@@ -235,52 +234,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* 最近の履歴 */}
-        <section>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-bold">最近の添削履歴</h2>
-            <a href="/dashboard/results" className="text-sm text-[#e85d8a] hover:underline">
-              すべて見る
-            </a>
-          </div>
-
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 animate-pulse rounded-[16px] bg-[#110e1c]" />
-              ))}
-            </div>
-          ) : recentDrafts.length > 0 ? (
-            <div className="space-y-3">
-              {recentDrafts.map((item) => (
-                <div key={item.id} className="rounded-[16px] border border-[#231f36] bg-[#110e1c] p-4">
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-[#2a1420] px-2.5 py-0.5 text-xs font-semibold text-[#e85d8a]">
-                      {item.category}
-                    </span>
-                    <span className="text-sm font-bold text-[#e85d8a]">{item.body_score}点</span>
-                    <span className="ml-auto text-xs text-[#4d4866]">
-                      {new Date(item.created_at).toLocaleDateString("ja-JP")}
-                    </span>
-                  </div>
-                  {item.title && (
-                    <p className="mt-2 text-sm font-semibold text-[#f2eefb]">{item.title}</p>
-                  )}
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#8b84a8]">
-                    {item.improved_text}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-[16px] border border-[#231f36] bg-[#110e1c] p-6 text-center">
-              <p className="text-sm text-[#8b84a8]">まだ添削履歴がありません。</p>
-              <a href="/dashboard/new" className="mt-2 inline-block text-sm font-semibold text-[#e85d8a]">
-                最初の添削をはじめる →
-              </a>
-            </div>
-          )}
-        </section>
       </div>
     </main>
   );
