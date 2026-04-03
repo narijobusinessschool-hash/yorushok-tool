@@ -12,6 +12,28 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// OpenAI API呼び出しの自動リトライ（429対策）
+async function callWithRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      const status = (err as { status?: number }).status;
+      if (status === 429 && attempt < maxRetries) {
+        const retryAfter = (err as { headers?: { get?: (k: string) => string | null } }).headers?.get?.("retry-after");
+        const waitMs = retryAfter ? Math.min(Number(retryAfter) * 1000, 10000) : (attempt + 1) * 2000;
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("max retries exceeded");
+}
+
 type LearningExample = {
   title: string;
   body: string;
@@ -370,7 +392,7 @@ ${body.industry ? `\n## 業種\n${body.industry}` : ""}
 - そのままコピペして使える完成形で出力する
 - JSON形式で返すこと: {"generatedBody": "<生成した本文>"}`;
 
-      const genRes = await client.chat.completions.create({
+      const genRes = await callWithRetry(() => client.chat.completions.create({
         model,
         temperature: 0.85,
         response_format: { type: "json_object" },
@@ -378,7 +400,7 @@ ${body.industry ? `\n## 業種\n${body.industry}` : ""}
           { role: "system", content: genSystemPrompt },
           { role: "user", content: genUserPrompt },
         ],
-      });
+      }));
 
       const genContent = genRes.choices[0]?.message?.content ?? "{}";
       const genJson = JSON.parse(genContent);
@@ -439,7 +461,7 @@ ${goodTitlesText}
   ]
 }`;
 
-      const titleRes = await client.chat.completions.create({
+      const titleRes = await callWithRetry(() => client.chat.completions.create({
         model,
         temperature: 0.8,
         response_format: { type: "json_object" },
@@ -447,7 +469,7 @@ ${goodTitlesText}
           { role: "system", content: titleSystemPrompt },
           { role: "user", content: titleUserPrompt },
         ],
-      });
+      }));
 
       const titleContent = titleRes.choices[0]?.message?.content ?? "{}";
       const titleJson = JSON.parse(titleContent);
@@ -730,7 +752,7 @@ ${approvedPatternSuggestions.length > 0 ? approvedPatternSuggestions.map((p, i) 
 ## 出力形式（JSONのみ、説明文不要）
 ${outputFormat}`;
 
-    const response = await client.chat.completions.create({
+    const response = await callWithRetry(() => client.chat.completions.create({
       model,
       temperature: 0.75,
       response_format: { type: "json_object" },
@@ -738,7 +760,7 @@ ${outputFormat}`;
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-    });
+    }));
 
     const content = response.choices[0]?.message?.content;
 

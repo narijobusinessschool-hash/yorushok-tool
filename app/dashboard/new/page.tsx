@@ -1260,12 +1260,14 @@ ${successLine}
 
       if (res.status === 429 && data.error === "limit_exceeded") {
         setShowLimitModal(true);
+        setIsAiLoading(false);
         return;
       }
 
       if (res.status === 403) {
         setSavedNotice("ご利用が停止されています。管理者にお問い合わせください。");
         setTimeout(() => setSavedNotice(""), 5000);
+        setIsAiLoading(false);
         return;
       }
 
@@ -1293,6 +1295,7 @@ ${successLine}
       const gaUserRaw = localStorage.getItem("yorushokuCurrentUser");
       const gaPlan = gaUserRaw ? (JSON.parse(gaUserRaw).plan ?? "free") : "free";
       gaGenerateDraft({ category, bodyScore: nextResult.bodyScore, plan: gaPlan, sellType });
+      setIsAiLoading(false);
     } catch (err) {
       console.error("AI添削エラー:", err);
       const raw = localStorage.getItem("yorushokuCurrentUser");
@@ -1301,10 +1304,11 @@ ${successLine}
         logError("analyze_failed", "AI添削でエラーが発生", { message: String(err) }, uid)
       );
       const errMsg = err instanceof Error ? err.message : "AI添削でエラーが発生しました。";
-      setSavedNotice(`⚠ ${errMsg} もう一度お試しください。`);
+      setSavedNotice(`⚠ ${errMsg} 数秒後にもう一度お試しください。`);
       setTimeout(() => setSavedNotice(""), 6000);
     } finally {
-      setIsAiLoading(false);
+      // エラー時は3秒間クールダウン（連打による429防止）
+      setTimeout(() => setIsAiLoading(false), 3000);
     }
   }
 
