@@ -124,6 +124,30 @@ async function chargePoints(memberId: string, cost: number, memberInfo: MemberIn
   }
 }
 
+type CostMode = "generate_body" | "generate_title" | "correct";
+
+// プラン別のポイント消費量を算出。
+// NBS（有料）: 従来通り 生成0.5P / 添削1P。
+// 無料会員: 生成1P、添削は「採点されるフィールド数」で1〜2P。
+function getCost(
+  plan: string | undefined,
+  mode: CostMode,
+  category?: string,
+  title?: string,
+  text?: string,
+): number {
+  if (plan === "nbs") {
+    return mode === "correct" ? 1 : 0.5;
+  }
+  if (mode === "generate_body" || mode === "generate_title") {
+    return 1;
+  }
+  const hasTitle = category === "写メ日記" && !!title?.trim();
+  const hasBody = !!text?.trim();
+  const scored = (hasTitle ? 1 : 0) + (hasBody ? 1 : 0);
+  return Math.max(1, scored);
+}
+
 async function updateUserAiProfile(memberId: string, adminClient: any, openaiClient: OpenAI) {
   const [{ data: recentDrafts }, { data: copyEvents }] = await Promise.all([
     adminClient
@@ -225,7 +249,12 @@ export async function POST(req: Request) {
           );
         }
 
-        const cost = isGenerateBody || isGenerateTitle ? 0.5 : 1;
+        const mode: CostMode = isGenerateBody
+          ? "generate_body"
+          : isGenerateTitle
+            ? "generate_title"
+            : "correct";
+        const cost = getCost(member?.plan, mode, body.category, body.title, body.text);
 
         if (member && member.plan !== "nbs") {
           // 無料会員: ライフタイム20P上限
@@ -404,9 +433,15 @@ ${body.industry ? `\n## 業種\n${body.industry}` : ""}
 
       const genContent = genRes.choices[0]?.message?.content ?? "{}";
       const genJson = JSON.parse(genContent);
-      // 本文生成: 0.5P消費
+      // 本文生成: NBS=0.5P / 無料=1P
       if (memberId && memberInfo) {
-        await chargePoints(String(memberId), 0.5, memberInfo, supabaseAdmin, client);
+        await chargePoints(
+          String(memberId),
+          getCost(memberInfo.plan, "generate_body"),
+          memberInfo,
+          supabaseAdmin,
+          client,
+        );
       }
       return NextResponse.json({ generatedBody: genJson.generatedBody ?? "" });
     }
@@ -473,9 +508,15 @@ ${goodTitlesText}
 
       const titleContent = titleRes.choices[0]?.message?.content ?? "{}";
       const titleJson = JSON.parse(titleContent);
-      // タイトル生成: 0.5P消費
+      // タイトル生成: NBS=0.5P / 無料=1P
       if (memberId && memberInfo) {
-        await chargePoints(String(memberId), 0.5, memberInfo, supabaseAdmin, client);
+        await chargePoints(
+          String(memberId),
+          getCost(memberInfo.plan, "generate_title"),
+          memberInfo,
+          supabaseAdmin,
+          client,
+        );
       }
       return NextResponse.json({
         titleSuggestions: titleJson.titleSuggestions ?? [],
@@ -773,11 +814,17 @@ ${outputFormat}`;
 
     const parsed = JSON.parse(content);
 
-    // AFTER successful AI response: charge 1P + save to draft_results
+    // AFTER successful AI response: charge points + save to draft_results
     if (memberId && !isGenerateBody) {
       if (memberInfo) {
-        // 添削: 1P消費（free・NBS共通）
-        await chargePoints(String(memberId), 1, memberInfo, supabaseAdmin, client);
+        // 添削: NBS=1P / 無料=採点フィールド数(1〜2P)
+        await chargePoints(
+          String(memberId),
+          getCost(memberInfo.plan, "correct", category, title, text),
+          memberInfo,
+          supabaseAdmin,
+          client,
+        );
       }
 
       // Save to draft_results for AI learning accumulation

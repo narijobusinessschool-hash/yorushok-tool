@@ -241,7 +241,7 @@ export default function AdminMembersPage() {
     );
     if (!confirmed) return;
 
-    const newLimit = newPlan === "nbs" ? 99999 : 3;
+    const newLimit = newPlan === "nbs" ? 99999 : 20;
 
     await supabase
       .from("members")
