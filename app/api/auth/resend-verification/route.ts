@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
     const { data: member } = await supabaseAdmin
       .from("members")
-      .select("id, email, email_verified")
+      .select("id, email, email_verified, verification_expires_at")
       .eq("email", email.trim())
       .maybeSingle();
 
@@ -34,6 +34,24 @@ export async function POST(req: Request) {
         message:
           "認証メールを送信しました。メールが届かない場合は迷惑メールフォルダをご確認ください。",
       });
+    }
+
+    // レート制限: 前回送信から60秒以内の再送は拒否（Resend API 連打防止）
+    if (member.verification_expires_at) {
+      const lastSentMs =
+        new Date(member.verification_expires_at).getTime() - 24 * 60 * 60 * 1000;
+      const elapsedMs = Date.now() - lastSentMs;
+      const COOLDOWN_MS = 60 * 1000;
+      if (elapsedMs >= 0 && elapsedMs < COOLDOWN_MS) {
+        const retryAfterSec = Math.ceil((COOLDOWN_MS - elapsedMs) / 1000);
+        return NextResponse.json(
+          {
+            status: "rate_limited",
+            message: `認証メールの再送は1分おきに可能です。あと${retryAfterSec}秒お待ちください。`,
+          },
+          { status: 429 },
+        );
+      }
     }
 
     const token = generateVerificationToken();
