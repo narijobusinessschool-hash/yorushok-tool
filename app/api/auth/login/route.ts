@@ -58,6 +58,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "現在このアカウントの利用が制限されています。管理者にお問い合わせください。" }, { status: 403 });
     }
 
+    // メール認証未完了の場合はログイン拒否（既存ユーザーは email_verified=true で初期化済なので影響なし）
+    if (data.email_verified === false) {
+      return NextResponse.json(
+        {
+          error: "email_not_verified",
+          message:
+            "メールアドレスの確認が完了していません。登録時にお送りした確認メールのリンクをクリックしてください。",
+          email: data.email,
+        },
+        { status: 403 },
+      );
+    }
+
     // 既存ユーザーの端末指紋バックフィル（初回ログイン時に一度だけ保存）
     // 重複チェックはしない（既存会員への影響を避ける一度だけの取得）
     if (

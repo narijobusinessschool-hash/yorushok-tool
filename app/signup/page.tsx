@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { gaSignUp } from "@/lib/ga";
 import { getDeviceFingerprint } from "@/lib/fingerprint";
 
@@ -13,7 +12,6 @@ type DuplicateDeviceError = {
 };
 
 export default function SignupPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -21,6 +19,9 @@ export default function SignupPage() {
   const [duplicateDevice, setDuplicateDevice] = useState<DuplicateDeviceError | null>(null);
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [verificationSent, setVerificationSent] = useState<{ email: string; emailSent: boolean } | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
 
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -61,16 +62,96 @@ export default function SignupPage() {
         return;
       }
 
-      const { user: data } = json;
-      localStorage.setItem("yorushokuCurrentUser", JSON.stringify(data));
-      document.cookie = `yorushoku_session=${encodeURIComponent(JSON.stringify({ role: data.role }))}; path=/; max-age=86400`;
+      // 登録成功 → メール認証画面へ切替
       gaSignUp();
-      router.push("/dashboard");
+      setVerificationSent({
+        email: json.email ?? email.trim(),
+        emailSent: !!json.emailSent,
+      });
     } catch {
       setError("登録処理中にエラーが発生しました。");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleResend() {
+    if (!verificationSent) return;
+    setResendLoading(true);
+    setResendMessage("");
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: verificationSent.email }),
+      });
+      const json = await res.json();
+      setResendMessage(
+        json.message ?? (res.ok ? "認証メールを再送しました。" : "再送に失敗しました。"),
+      );
+    } catch {
+      setResendMessage("通信エラーが発生しました。");
+    } finally {
+      setResendLoading(false);
+    }
+  }
+
+  if (verificationSent) {
+    return (
+      <main className="min-h-screen bg-[#09070f] text-[#f2eefb]">
+        <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-5 py-10">
+          <div className="w-full rounded-[24px] border border-[#231f36] bg-[#110e1c] p-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#1e2e3a] text-3xl text-[#60a5fa]">
+              ✉
+            </div>
+            <h1 className="mb-3 text-xl font-bold">確認メールを送信しました</h1>
+            <p className="mb-2 text-sm text-[#c8c2dc] leading-7">
+              <span className="font-semibold text-[#f2eefb]">{verificationSent.email}</span> 宛に
+              認証メールをお送りしました。
+            </p>
+            <p className="mb-6 text-sm leading-7 text-[#8b84a8]">
+              メール内のリンクをクリックして、登録を完了してください。<br />
+              このリンクは <span className="text-[#e85d8a] font-semibold">24時間</span> 有効です。
+            </p>
+
+            {!verificationSent.emailSent && (
+              <div className="mb-4 rounded-xl border border-[#5c3a1e] bg-[#1e150a] px-4 py-3 text-left text-xs leading-6 text-[#fb923c]">
+                ⚠️ メール送信に失敗した可能性があります。下の「認証メールを再送」からもう一度お試しください。
+              </div>
+            )}
+
+            <div className="rounded-xl border border-[#231f36] bg-[#0e0c18] p-4 text-left text-xs leading-6 text-[#8b84a8]">
+              <p className="mb-2 font-semibold text-[#c8c2dc]">メールが届かない場合</p>
+              <ul className="space-y-1 pl-4 list-disc">
+                <li>迷惑メール／プロモーションフォルダを確認</li>
+                <li>メールアドレスの入力ミスがないか確認</li>
+                <li>数分経っても届かない場合は再送ボタンをご利用ください</li>
+              </ul>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendLoading}
+              className="mt-5 inline-flex w-full items-center justify-center rounded-2xl border border-[#2f2a45] bg-[#0e0c18] py-3 text-sm font-semibold text-[#c8c2dc] transition hover:border-[#e85d8a] hover:text-[#e85d8a] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {resendLoading ? "送信中…" : "認証メールを再送"}
+            </button>
+
+            {resendMessage && (
+              <p className="mt-3 text-xs text-[#c8c2dc]">{resendMessage}</p>
+            )}
+
+            <a
+              href="/"
+              className="mt-5 inline-block text-xs text-[#8b84a8] hover:text-[#e85d8a] transition"
+            >
+              ← ログイン画面へ戻る
+            </a>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   return (

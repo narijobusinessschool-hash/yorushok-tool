@@ -18,6 +18,9 @@ export default function Home() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem(SAVED_LOGIN_KEY);
@@ -28,9 +31,31 @@ export default function Home() {
     }
   }, []);
 
+  async function handleResendVerification(targetEmail: string) {
+    setResendLoading(true);
+    setResendMessage("");
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: targetEmail }),
+      });
+      const json = await res.json();
+      setResendMessage(
+        json.message ?? (res.ok ? "認証メールを再送しました。" : "再送に失敗しました。"),
+      );
+    } catch {
+      setResendMessage("通信エラーが発生しました。");
+    } finally {
+      setResendLoading(false);
+    }
+  }
+
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setUnverifiedEmail(null);
+    setResendMessage("");
     setLoading(true);
 
     try {
@@ -43,6 +68,11 @@ export default function Home() {
       const json = await res.json();
 
       if (!res.ok) {
+        if (json?.error === "email_not_verified") {
+          setUnverifiedEmail(json.email ?? email.trim());
+          setError(json.message ?? "メールアドレスの確認が完了していません。");
+          return;
+        }
         logError("login_failed", json.error ?? "ログイン失敗", { email: email.trim() });
         setError(json.error ?? "メールアドレスまたはパスワードが違います。");
         return;
@@ -223,8 +253,23 @@ export default function Home() {
             </div>
 
             {error && (
-              <div className="rounded-xl border border-[#5c1a2e] bg-[#1e0a12] px-4 py-3 text-sm text-[#f87171]">
+              <div className="rounded-xl border border-[#5c1a2e] bg-[#1e0a12] px-4 py-3 text-sm text-[#f87171] leading-6">
                 {error}
+                {unverifiedEmail && (
+                  <div className="mt-3 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleResendVerification(unverifiedEmail)}
+                      disabled={resendLoading}
+                      className="inline-flex items-center justify-center rounded-xl border border-[#e85d8a] bg-transparent px-4 py-2 text-xs font-semibold text-[#e85d8a] transition hover:bg-[#e85d8a] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {resendLoading ? "送信中…" : "認証メールを再送する"}
+                    </button>
+                    {resendMessage && (
+                      <p className="text-xs text-[#c8c2dc]">{resendMessage}</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

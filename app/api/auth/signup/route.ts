@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { createClient } from "@supabase/supabase-js";
 import { notifyNewMember } from "@/lib/notify";
+import {
+  buildVerificationExpiresAt,
+  generateVerificationToken,
+  sendVerificationEmail,
+} from "@/lib/email-verification";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,6 +58,8 @@ export async function POST(req: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
+    const verificationToken = generateVerificationToken();
+    const verificationExpiresAt = buildVerificationExpiresAt();
 
     const { data, error: insertError } = await supabaseAdmin
       .from("members")
@@ -67,6 +74,9 @@ export async function POST(req: Request) {
         usage_permission: true,
         note: "",
         device_fingerprint: deviceFingerprint || null,
+        email_verified: false,
+        verification_token: verificationToken,
+        verification_expires_at: verificationExpiresAt,
       })
       .select()
       .single();
@@ -77,8 +87,14 @@ export async function POST(req: Request) {
 
     notifyNewMember(email.trim(), data.id).catch(() => {});
 
+    // 認証メール送信（失敗しても登録は成功扱い、クライアントに再送ボタンを出す前提）
+    const emailResult = await sendVerificationEmail(email.trim(), verificationToken);
+
     return NextResponse.json({
-      user: { id: data.id, name: data.name ?? "", email: data.email, role: data.role },
+      status: "verification_sent",
+      email: data.email,
+      emailSent: emailResult.ok,
+      emailError: emailResult.ok ? undefined : emailResult.error,
     });
   } catch {
     return NextResponse.json({ error: "登録処理中にエラーが発生しました。" }, { status: 500 });
