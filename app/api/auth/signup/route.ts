@@ -30,14 +30,15 @@ export async function POST(req: Request) {
     }
 
     // 端末指紋重複チェック（同一端末からの複アカ登録防止）
+    // .limit(1) で「1件でも存在するか」を安全に判定（maybeSingle は複数マッチ時にエラーでスルーする罠がある）
     if (deviceFingerprint && typeof deviceFingerprint === "string") {
-      const { data: fpMatch } = await supabaseAdmin
+      const { data: fpMatches } = await supabaseAdmin
         .from("members")
         .select("id")
         .eq("device_fingerprint", deviceFingerprint)
-        .maybeSingle();
+        .limit(1);
 
-      if (fpMatch) {
+      if (fpMatches && fpMatches.length > 0) {
         return NextResponse.json(
           {
             error: "duplicate_device",
