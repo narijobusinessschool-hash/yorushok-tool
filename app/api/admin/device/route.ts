@@ -7,11 +7,19 @@ const supabaseAdmin = createClient(
 );
 
 export async function GET() {
-  const { data } = await supabaseAdmin
+  // ワイルドカードで全カラム取得（個別指定するとDBに存在しないカラムで全件取得失敗する罠を避ける）
+  const { data, error } = await supabaseAdmin
     .from("members")
-    .select("id, name, email, plan, status, device_fingerprint, last_login_at, created_at")
+    .select("*")
     .neq("role", "管理者")
     .order("created_at", { ascending: false });
+
+  if (error) {
+    return NextResponse.json(
+      { members: [], error: error.message },
+      { status: 500 },
+    );
+  }
   return NextResponse.json({ members: data ?? [] });
 }
 
