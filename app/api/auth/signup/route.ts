@@ -13,6 +13,18 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Vercel / 標準的なリバースプロキシ経由でのクライアントIP取得
+function getClientIp(req: Request): string | null {
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) {
+    const first = xff.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  const xri = req.headers.get("x-real-ip");
+  if (xri) return xri.trim();
+  return null;
+}
+
 export async function POST(req: Request) {
   try {
     const { email, password, deviceFingerprint } = await req.json();
@@ -34,22 +46,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "このメールアドレスはすでに登録されています。" }, { status: 409 });
     }
 
-    // 端末指紋重複チェック（同一端末からの複アカ登録防止）
-    // 期限切れ未認証レコードは「塞ぎ込み」として無視（正規ユーザーが認証メールを失くしても
-    // 24時間後に同じ端末から再登録できる）。認証済み or 期限内の未認証レコードがあればブロック
+    // マルチシグナル判定: 同一 device_fingerprint + 同一 IP + 1時間以内 のみブロック
+    // 日本市場の均質端末環境（iPhone+Safari+日本語等）で指紋衝突が起きても誤爆しない。
+    // 悪用パターン（同一PCで連続量産）は確実に block できる設計。
+    const currentIp = getClientIp(req);
     if (deviceFingerprint && typeof deviceFingerprint === "string") {
       const { data: fpMatches } = await supabaseAdmin
         .from("members")
-        .select("id, email_verified, verification_expires_at")
+        .select("id, email_verified, verification_expires_at, signup_ip, created_at")
         .eq("device_fingerprint", deviceFingerprint);
 
       const nowMs = Date.now();
+      const oneHourMs = 60 * 60 * 1000;
+
       const hasActiveDuplicate = (fpMatches ?? []).some((m) => {
-        if (m.email_verified) return true;
-        if (m.verification_expires_at) {
-          return new Date(m.verification_expires_at).getTime() > nowMs;
-        }
-        return true;
+        // 認証済 or 期限内の未認証レコードのみ有効。期限切れ未認証は「塞ぎ込み」として無視
+        const isActive =
+          m.email_verified ||
+          (m.verification_expires_at &&
+            new Date(m.verification_expires_at).getTime() > nowMs);
+        if (!isActive) return false;
+
+        // マルチシグナル判定: 同一 IP かつ 1時間以内の場合のみ block
+        const ipMatch = !!(currentIp && m.signup_ip && m.signup_ip === currentIp);
+        const timeMatch = !!(
+          m.created_at && nowMs - new Date(m.created_at).getTime() < oneHourMs
+        );
+        return ipMatch && timeMatch;
       });
 
       if (hasActiveDuplicate) {
@@ -57,7 +80,7 @@ export async function POST(req: Request) {
           {
             error: "duplicate_device",
             message:
-              "この端末は既に登録されています。別のアカウントをお持ちの場合はそちらでログインしてください。心当たりがない場合は下記までお問い合わせください。",
+              "短時間で複数の登録が検出されました。同じ端末・同じネットワークからの連続登録は制限されています。心当たりがない場合は下記までお問い合わせください。",
             contactLine: "https://line.me/R/ti/p/%40201kgbng",
             contactEmail: "narijo.businessschool@gmail.com",
           },
@@ -83,6 +106,7 @@ export async function POST(req: Request) {
         usage_permission: true,
         note: "",
         device_fingerprint: deviceFingerprint || null,
+        signup_ip: currentIp,
         email_verified: false,
         verification_token: verificationToken,
         verification_expires_at: verificationExpiresAt,
