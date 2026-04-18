@@ -121,6 +121,30 @@ export default function DevicePage() {
     }
   }
 
+  async function deleteMemberFromDeviceList(memberId: string, email: string) {
+    if (!window.confirm(`【警告】会員「${email}」を完全削除します。\n\n・関連する添削履歴・AI学習プロフィール・診断データも全て削除されます\n・端末指紋も自動的に削除されます\n・この操作は元に戻せません\n\n本当に削除しますか？`)) return;
+    if (!window.confirm(`最終確認：${email} を削除します。よろしいですか？`)) return;
+    setBulkActing(true);
+    try {
+      const res = await fetch("/api/admin/delete-member", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId, memberEmail: email }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setNotice(json.error ?? "削除に失敗しました");
+        setTimeout(() => setNotice(""), 3000);
+        return;
+      }
+      await fetchMembers();
+      setNotice(`${email} を完全削除しました`);
+      setTimeout(() => setNotice(""), 3000);
+    } finally {
+      setBulkActing(false);
+    }
+  }
+
   const filtered = members.filter(
     (m) => m.name?.includes(search) || m.email?.includes(search)
   );
@@ -238,9 +262,9 @@ export default function DevicePage() {
                   .map((m) => (
                     <div
                       key={m.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-[#231f36] bg-[#0e0c18] px-3 py-2.5"
+                      className="rounded-xl border border-[#231f36] bg-[#0e0c18] p-3"
                     >
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0">
                         <p className="truncate text-xs font-medium text-[#f2eefb]">{m.email}</p>
                         <p
                           className="mt-1 truncate font-mono text-[10px] text-[#8b84a8]"
@@ -254,14 +278,27 @@ export default function DevicePage() {
                           {m.last_login_at ? ` ／ 最終ログイン: ${formatDate(m.last_login_at)}` : ""}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => m.device_fingerprint && releaseOneFingerprint(m.device_fingerprint, m.email)}
-                        disabled={bulkActing}
-                        className="shrink-0 rounded-lg border border-[#e85d8a] px-3 py-1.5 text-[10px] font-semibold text-[#e85d8a] transition hover:bg-[#e85d8a] hover:text-white disabled:opacity-50"
-                      >
-                        端末を解除
-                      </button>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => m.device_fingerprint && releaseOneFingerprint(m.device_fingerprint, m.email)}
+                          disabled={bulkActing}
+                          className="rounded-lg border border-[#e85d8a] px-3 py-1 text-[10px] font-semibold text-[#e85d8a] transition hover:bg-[#e85d8a] hover:text-white disabled:opacity-50"
+                        >
+                          端末のみ解除
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteMemberFromDeviceList(m.id, m.email)}
+                          disabled={bulkActing}
+                          className="rounded-lg border border-[#d14343] bg-transparent px-3 py-1 text-[10px] font-semibold text-[#d14343] transition hover:bg-[#d14343] hover:text-white disabled:opacity-50"
+                        >
+                          会員ごと削除
+                        </button>
+                        <span className="text-[10px] text-[#4d4866]">
+                          ※ 会員ごと削除すれば端末情報も自動で削除されます
+                        </span>
+                      </div>
                     </div>
                   ))
               )}
