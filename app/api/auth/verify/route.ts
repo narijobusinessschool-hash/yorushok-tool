@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
     const { data: member } = await supabaseAdmin
       .from("members")
-      .select("id, email, email_verified, verification_expires_at")
+      .select("id, name, email, role, plan, email_verified, verification_expires_at")
       .eq("verification_token", token)
       .maybeSingle();
 
@@ -75,7 +75,16 @@ export async function POST(req: Request) {
     return NextResponse.json({
       status: "verified",
       email: member.email,
-      message: "メールアドレスの確認が完了しました。ログインしてご利用いただけます。",
+      message: "メールアドレスの確認が完了しました。",
+      // 認証完了と同時に自動ログインできるよう、フロント側で localStorage/cookie
+      // に設定する user 情報を返す（トークンは既に無効化済みなので再利用不可）
+      user: {
+        id: member.id,
+        name: member.name ?? "",
+        email: member.email,
+        role: member.role,
+        plan: member.plan ?? "free",
+      },
     });
   } catch {
     return NextResponse.json(

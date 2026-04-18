@@ -1,21 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+
+type User = {
+  id: string | number;
+  name: string;
+  email: string;
+  role: string;
+  plan: string;
+};
 
 type VerifyState =
   | { status: "pending" }
-  | { status: "verified"; email: string; message: string }
+  | { status: "verified"; user: User; message: string }
   | { status: "already_verified"; email: string; message: string }
   | { status: "expired"; message: string }
   | { status: "invalid"; message: string }
   | { status: "error"; message: string };
 
 export default function VerifyPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const [state, setState] = useState<VerifyState>({ status: "pending" });
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -38,8 +48,21 @@ export default function VerifyPage() {
         const data = await res.json();
         if (cancelled) return;
 
-        if (res.ok && data.status === "verified") {
-          setState({ status: "verified", email: data.email, message: data.message });
+        if (res.ok && data.status === "verified" && data.user) {
+          // 自動ログイン: localStorage + session cookie をセットしてダッシュボードへ
+          localStorage.setItem("yorushokuCurrentUser", JSON.stringify(data.user));
+          document.cookie = `yorushoku_session=${encodeURIComponent(
+            JSON.stringify({ role: data.user.role }),
+          )}; path=/; max-age=86400`;
+          setState({ status: "verified", user: data.user, message: data.message });
+          setRedirecting(true);
+          setTimeout(() => {
+            if (data.user.role === "管理者") {
+              router.push("/admin");
+            } else {
+              router.push("/dashboard");
+            }
+          }, 1500);
         } else if (res.ok && data.status === "already_verified") {
           setState({
             status: "already_verified",
@@ -67,10 +90,7 @@ export default function VerifyPage() {
     return () => {
       cancelled = true;
     };
-  }, [token]);
-
-  const isSuccess =
-    state.status === "verified" || state.status === "already_verified";
+  }, [token, router]);
 
   return (
     <main className="min-h-screen bg-[#09070f] text-[#f2eefb]">
@@ -83,16 +103,31 @@ export default function VerifyPage() {
             </>
           )}
 
-          {isSuccess && (
+          {state.status === "verified" && (
             <>
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#1e3a1e] text-3xl text-[#4ade80]">
                 ✓
               </div>
               <h1 className="mb-3 text-xl font-bold">
-                {state.status === "verified"
-                  ? "メール認証が完了しました"
-                  : "すでに認証済みです"}
+                メール認証が完了しました
               </h1>
+              <p className="mb-6 text-sm leading-7 text-[#c8c2dc]">
+                {redirecting
+                  ? "自動的にダッシュボードへ移動します…"
+                  : state.message}
+              </p>
+              <div className="mx-auto h-1 w-1/2 overflow-hidden rounded-full bg-[#231f36]">
+                <div className="h-full animate-[pulse_1s_ease-in-out_infinite] bg-[#e85d8a]" />
+              </div>
+            </>
+          )}
+
+          {state.status === "already_verified" && (
+            <>
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#1e3a1e] text-3xl text-[#4ade80]">
+                ✓
+              </div>
+              <h1 className="mb-3 text-xl font-bold">すでに認証済みです</h1>
               <p className="mb-6 text-sm leading-7 text-[#c8c2dc]">
                 {state.message}
               </p>
