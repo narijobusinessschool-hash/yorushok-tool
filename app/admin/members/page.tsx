@@ -235,6 +235,40 @@ export default function AdminMembersPage() {
     );
   }
 
+  async function deleteMember(memberId: string, memberEmail: string) {
+    const confirmed = window.confirm(
+      `【注意】会員「${memberEmail}」を完全に削除します。\n\n` +
+        `・関連する添削履歴・AI学習プロフィール・診断データも全て削除されます。\n` +
+        `・この操作は元に戻せません。\n\n` +
+        `本当に削除しますか？`,
+    );
+    if (!confirmed) return;
+
+    const doubleConfirm = window.confirm(
+      `最終確認：${memberEmail} を削除します。よろしいですか？`,
+    );
+    if (!doubleConfirm) return;
+
+    try {
+      const res = await fetch("/api/admin/delete-member", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId, memberEmail }),
+      });
+      const json = await res.json();
+
+      if (!res.ok) {
+        showMessage(json.error ?? "削除に失敗しました");
+        return;
+      }
+
+      setMembers((prev) => prev.filter((m) => m.id !== memberId));
+      showMessage(`${memberEmail} を削除しました`);
+    } catch {
+      showMessage("削除処理中にエラーが発生しました");
+    }
+  }
+
   async function changePlan(memberId: string, newPlan: MemberPlan) {
     const confirmed = window.confirm(
       `プランを「${newPlan}」に変更しますか？`
@@ -674,6 +708,20 @@ export default function AdminMembersPage() {
                     <p className="mt-3 text-xs leading-6 text-[#7b7682]">
                       利用停止を押した時だけ、1回だけ確認を出します。
                     </p>
+
+                    <div className="mt-5 border-t border-[#ece7ef] pt-4">
+                      <p className="text-xs text-[#7b7682]">会員削除（取消不可）</p>
+                      <button
+                        type="button"
+                        onClick={() => deleteMember(member.id, member.email)}
+                        className="mt-2 inline-flex h-10 items-center justify-center rounded-xl border border-[#d14343] bg-white px-4 text-xs font-semibold text-[#d14343] transition hover:bg-[#fff5f5]"
+                      >
+                        会員を完全削除
+                      </button>
+                      <p className="mt-2 text-[10px] leading-5 text-[#9b92a4]">
+                        添削履歴・AI学習データも全て削除されます。管理者アカウントは削除できません。
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
