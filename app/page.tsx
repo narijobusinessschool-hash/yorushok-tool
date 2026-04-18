@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { logError, logEvent } from "@/lib/logger";
 import { gaLogin } from "@/lib/ga";
+import { getDeviceFingerprint } from "@/lib/fingerprint";
 
 const SAVED_LOGIN_KEY = "yorushokuSavedLogin";
 const CURRENT_USER_KEY = "yorushokuCurrentUser";
@@ -33,10 +34,11 @@ export default function Home() {
     setLoading(true);
 
     try {
+      const deviceFingerprint = await getDeviceFingerprint();
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify({ email: email.trim(), password, deviceFingerprint }),
       });
       const json = await res.json();
 

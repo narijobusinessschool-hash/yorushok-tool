@@ -10,7 +10,7 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json();
+    const { email, password, deviceFingerprint } = await req.json();
 
     if (!email || !password) {
       return NextResponse.json({ error: "メールアドレスとパスワードを入力してください。" }, { status: 400 });
@@ -29,6 +29,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "このメールアドレスはすでに登録されています。" }, { status: 409 });
     }
 
+    // 端末指紋重複チェック（同一端末からの複アカ登録防止）
+    if (deviceFingerprint && typeof deviceFingerprint === "string") {
+      const { data: fpMatch } = await supabaseAdmin
+        .from("members")
+        .select("id")
+        .eq("device_fingerprint", deviceFingerprint)
+        .maybeSingle();
+
+      if (fpMatch) {
+        return NextResponse.json(
+          {
+            error: "duplicate_device",
+            message:
+              "この端末は既に登録されています。別のアカウントをお持ちの場合はそちらでログインしてください。心当たりがない場合は下記までお問い合わせください。",
+            contactLine: "https://line.me/R/ti/p/%40201kgbng",
+            contactEmail: "narijo.businessschool@gmail.com",
+          },
+          { status: 409 },
+        );
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const { data, error: insertError } = await supabaseAdmin
@@ -43,6 +65,7 @@ export async function POST(req: Request) {
         usage_limit: 20,
         usage_permission: true,
         note: "",
+        device_fingerprint: deviceFingerprint || null,
       })
       .select()
       .single();

@@ -9,7 +9,7 @@ const supabaseAdmin = createClient(
 export async function GET() {
   const { data } = await supabaseAdmin
     .from("members")
-    .select("id, name, email, plan, status, device_status, last_login_at, created_at")
+    .select("id, name, email, plan, status, device_status, device_fingerprint, last_login_at, created_at")
     .neq("role", "管理者")
     .order("created_at", { ascending: false });
   return NextResponse.json({ members: data ?? [] });
@@ -20,7 +20,12 @@ export async function POST(req: NextRequest) {
 
   const deviceStatus = action === "reset" ? "未登録" : "再承認待ち";
   try {
-    await supabaseAdmin.from("members").update({ device_status: deviceStatus }).eq("id", memberId);
+    // reset時は端末指紋も消去（同端末から再登録可能にするため）
+    const updateData: Record<string, string | null> = { device_status: deviceStatus };
+    if (action === "reset") {
+      updateData.device_fingerprint = null;
+    }
+    await supabaseAdmin.from("members").update(updateData).eq("id", memberId);
   } catch { /* device_status column may not exist */ }
 
   await supabaseAdmin.from("usage_events").insert({

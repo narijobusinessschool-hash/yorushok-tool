@@ -10,6 +10,7 @@ type Member = {
   plan: string;
   status: string;
   device_status: string | null;
+  device_fingerprint: string | null;
   last_login_at: string | null;
   created_at: string;
 };
@@ -125,6 +126,15 @@ export default function DevicePage() {
                       </span>
                       <span className="text-xs text-[#4d4866]">最終ログイン: {formatDate(m.last_login_at)}</span>
                     </div>
+                    <p className="mt-1.5 text-[11px] text-[#4d4866]">
+                      端末指紋: {m.device_fingerprint ? (
+                        <span className="font-mono text-[#8b84a8]" title={m.device_fingerprint}>
+                          {m.device_fingerprint.slice(0, 12)}…
+                        </span>
+                      ) : (
+                        <span className="text-[#4d4866]">未取得</span>
+                      )}
+                    </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button

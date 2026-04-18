@@ -5,7 +5,7 @@ export default function PrivacyPage() {
         <a href="/" className="text-sm text-[#8b84a8] hover:text-[#f2eefb] transition">← トップへ</a>
 
         <h1 className="mt-6 text-2xl font-bold">プライバシーポリシー</h1>
-        <p className="mt-2 text-sm text-[#8b84a8]">最終更新日：2026年3月22日</p>
+        <p className="mt-2 text-sm text-[#8b84a8]">最終更新日：2026年4月18日</p>
 
         <div className="mt-8 space-y-8 text-sm leading-7 text-[#c8c2dc]">
 
@@ -21,6 +21,7 @@ export default function PrivacyPage() {
               <li>パスワード（bcryptによる暗号化ハッシュで保存）</li>
               <li>ご利用状況（添削回数、スコア履歴等）</li>
               <li>入力された文章（添削処理のためのみ使用）</li>
+              <li>端末識別ハッシュ値（不正利用防止のため、ブラウザ・端末の特徴から生成されるハッシュ値のみを収集。個人を直接特定する情報は含まれません）</li>
             </ul>
           </section>
 
@@ -56,6 +57,11 @@ export default function PrivacyPage() {
               <div>
                 <p className="font-semibold text-[#f2eefb]">月額パンダ（GMOペイメントゲートウェイ株式会社・日本）</p>
                 <p className="text-[#8b84a8]">目的：有料プランの決済処理。決済に必要な情報が送信されます。</p>
+              </div>
+              <div>
+                <p className="font-semibold text-[#f2eefb]">Fingerprint, Inc.（米国）</p>
+                <p className="text-[#8b84a8]">目的：不正利用（複数アカウント作成による無料枠の悪用等）の防止。ブラウザ・端末の特徴から生成したハッシュ値のみを取得し、個人を直接特定する情報は送信されません。</p>
+                <p className="text-[#8b84a8]"><a href="https://fingerprint.com/privacy-policy/" target="_blank" rel="noopener noreferrer" className="text-[#e85d8a] hover:underline">Fingerprint プライバシーポリシー</a></p>
               </div>
             </div>
             <p className="mt-3">上記以外の第三者への個人情報提供は、法令に基づく場合を除き行いません。</p>

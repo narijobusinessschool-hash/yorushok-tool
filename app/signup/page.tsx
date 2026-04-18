@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { gaSignUp } from "@/lib/ga";
+import { getDeviceFingerprint } from "@/lib/fingerprint";
+
+type DuplicateDeviceError = {
+  error: "duplicate_device";
+  message: string;
+  contactLine: string;
+  contactEmail: string;
+};
 
 export default function SignupPage() {
   const router = useRouter();
@@ -10,12 +18,14 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [duplicateDevice, setDuplicateDevice] = useState<DuplicateDeviceError | null>(null);
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setDuplicateDevice(null);
 
     if (password.length < 8) {
       setError("パスワードは8文字以上で設定してください。");
@@ -33,14 +43,20 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
+      const deviceFingerprint = await getDeviceFingerprint();
+
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify({ email: email.trim(), password, deviceFingerprint }),
       });
       const json = await res.json();
 
       if (!res.ok) {
+        if (json?.error === "duplicate_device") {
+          setDuplicateDevice(json as DuplicateDeviceError);
+          return;
+        }
         setError(json.error ?? "登録に失敗しました。もう一度お試しください。");
         return;
       }
@@ -166,6 +182,28 @@ export default function SignupPage() {
             {error && (
               <div className="rounded-xl border border-[#5c1a2e] bg-[#1e0a12] px-4 py-3 text-sm text-[#f87171]">
                 {error}
+              </div>
+            )}
+
+            {duplicateDevice && (
+              <div className="rounded-xl border border-[#5c1a2e] bg-[#1e0a12] px-4 py-3 text-sm text-[#f87171] leading-6">
+                <p>{duplicateDevice.message}</p>
+                <div className="mt-3 flex flex-col gap-1.5">
+                  <a
+                    href={duplicateDevice.contactLine}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-[#e85d8a] hover:underline"
+                  >
+                    LINEでお問い合わせ →
+                  </a>
+                  <a
+                    href={`mailto:${duplicateDevice.contactEmail}`}
+                    className="font-semibold text-[#e85d8a] hover:underline"
+                  >
+                    メールでお問い合わせ: {duplicateDevice.contactEmail}
+                  </a>
+                </div>
               </div>
             )}
 

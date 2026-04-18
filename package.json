@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@fingerprintjs/fingerprintjs-pro": "^3.12.9",
     "@supabase/supabase-js": "^2.99.3",
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3",

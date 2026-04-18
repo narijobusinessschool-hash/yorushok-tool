@@ -9,7 +9,7 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json();
+    const { email, password, deviceFingerprint } = await req.json();
 
     if (!email || !password) {
       return NextResponse.json({ error: "メールアドレスとパスワードを入力してください。" }, { status: 400 });
@@ -56,6 +56,19 @@ export async function POST(req: Request) {
     }
     if (data.usage_permission === false) {
       return NextResponse.json({ error: "現在このアカウントの利用が制限されています。管理者にお問い合わせください。" }, { status: 403 });
+    }
+
+    // 既存ユーザーの端末指紋バックフィル（初回ログイン時に一度だけ保存）
+    // 重複チェックはしない（既存会員への影響を避ける一度だけの取得）
+    if (
+      deviceFingerprint &&
+      typeof deviceFingerprint === "string" &&
+      !data.device_fingerprint
+    ) {
+      await supabaseAdmin
+        .from("members")
+        .update({ device_fingerprint: deviceFingerprint })
+        .eq("id", data.id);
     }
 
     return NextResponse.json({
