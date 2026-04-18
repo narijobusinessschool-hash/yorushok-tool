@@ -35,15 +35,24 @@ export async function POST(req: Request) {
     }
 
     // 端末指紋重複チェック（同一端末からの複アカ登録防止）
-    // .limit(1) で「1件でも存在するか」を安全に判定（maybeSingle は複数マッチ時にエラーでスルーする罠がある）
+    // 期限切れ未認証レコードは「塞ぎ込み」として無視（正規ユーザーが認証メールを失くしても
+    // 24時間後に同じ端末から再登録できる）。認証済み or 期限内の未認証レコードがあればブロック
     if (deviceFingerprint && typeof deviceFingerprint === "string") {
       const { data: fpMatches } = await supabaseAdmin
         .from("members")
-        .select("id")
-        .eq("device_fingerprint", deviceFingerprint)
-        .limit(1);
+        .select("id, email_verified, verification_expires_at")
+        .eq("device_fingerprint", deviceFingerprint);
 
-      if (fpMatches && fpMatches.length > 0) {
+      const nowMs = Date.now();
+      const hasActiveDuplicate = (fpMatches ?? []).some((m) => {
+        if (m.email_verified) return true;
+        if (m.verification_expires_at) {
+          return new Date(m.verification_expires_at).getTime() > nowMs;
+        }
+        return true;
+      });
+
+      if (hasActiveDuplicate) {
         return NextResponse.json(
           {
             error: "duplicate_device",

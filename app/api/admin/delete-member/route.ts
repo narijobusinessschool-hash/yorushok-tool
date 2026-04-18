@@ -42,6 +42,8 @@ export async function POST(req: Request) {
       supabaseAdmin.from("draft_results").delete().eq("member_id", idNum),
       supabaseAdmin.from("user_ai_profiles").delete().eq("member_id", idStr),
       supabaseAdmin.from("member_profiles").delete().eq("member_id", idNum),
+      supabaseAdmin.from("draft_outcomes").delete().eq("member_id", idNum),
+      supabaseAdmin.from("access_analyses").delete().eq("member_id", idNum),
     ];
     await Promise.allSettled(deletions);
 
