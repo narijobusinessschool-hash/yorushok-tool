@@ -174,7 +174,7 @@ export default function DashboardPage() {
         >
           <div>
             <p className="text-sm font-semibold text-white/80">今すぐ始める</p>
-            <p className="mt-0.5 text-lg font-bold text-white">写メ日記・オキニトークを添削する</p>
+            <p className="mt-0.5 text-lg font-bold text-white">写メ日記・オキニトークを生成・添削</p>
           </div>
           <span className="text-2xl text-white/80">→</span>
         </a>
