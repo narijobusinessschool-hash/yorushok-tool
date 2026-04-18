@@ -401,12 +401,21 @@ export async function POST(req: Request) {
         ? `診断タイプ: ${body.diagnosisInfo.typeName}\n強み: ${body.diagnosisInfo.strengths ?? ""}\nターゲット: ${body.diagnosisInfo.bestTarget ?? ""}`
         : "";
 
-      const genSystemPrompt = `あなたは夜職業界専門のマーケティング戦略家兼トップライターです。ユーザーの過去の成功文章・実際に使われた文章・高スコア文章を総合分析し、その人らしい自然な文章をゼロから生成します。マーケティング原則（AIDA・PASONAなど）と個人の文体学習を統合して、そのまま使える完成形を出力します。`;
+      const genSystemPrompt = `あなたは夜職業界専門のマーケティング戦略家兼トップライターです。ユーザーのAI学習プロフィール・実際にコピーして使われた文章・高スコア本文・管理者承認の全体成功パターンを総合分析し、その人の個性を活かしつつ集客につながる文章をゼロから生成します。使われるたびに学習データが蓄積され精度が上がる設計です。`;
 
-      const genUserPrompt = `以下のユーザーの過去の文章例を参考に、カテゴリ「${body.category ?? "写メ日記"}」の本文を1つ生成してください。
+      const genUserPrompt = `以下の学習データを総合して、カテゴリ「${body.category ?? "写メ日記"}」の本文を1つ生成してください。
 添削ではなく、ゼロから新しい文章を作成してください。
 
-## ユーザーの文体・語尾・絵文字の癖（これを必ず踏襲すること）
+## このユーザーのAI学習プロフィール（最優先で反映すること）
+${userAiProfileText || "初回使用中 - まだデータなし（使うほど精度が上がります）"}
+
+## このユーザー自身の高スコア本文（直近3件／強く踏襲）
+${autoLearnedBodies.slice(0, 3).length > 0 ? autoLearnedBodies.slice(0, 3).map((b, i) => `【自己成功例${i + 1}】\n${b}`).join("\n\n") : "まだデータなし（使うほど精度が上がります）"}
+
+## このユーザーが実際にコピーして使った文章（最強の成功シグナル）
+${copiedTexts.slice(0, 3).length > 0 ? copiedTexts.slice(0, 3).map((t, i) => `【実使用例${i + 1}】\n${t}`).join("\n\n") : "まだデータなし"}
+
+## 文体例（管理者登録＋学習データ）
 ${styleText}
 
 ## 生成条件
@@ -414,8 +423,12 @@ ${categoryCtx}
 ${diagText ? `\n## 診断情報\n${diagText}` : ""}
 ${body.industry ? `\n## 業種\n${body.industry}` : ""}
 
+## 全体の成功パターン（管理者承認／個別適用の参考指針）
+${approvedPatternSuggestions.length > 0 ? approvedPatternSuggestions.map((p, i) => `${i + 1}. ${p}`).join("\n") : "なし"}
+
 ## 指示
-- 上記の文体例から語尾・絵文字・句読点の使い方・改行パターンを分析して踏襲すること
+- AI学習プロフィール・自己成功例・実使用例を最優先で踏襲（語尾・絵文字・句読点・改行パターンを継承）
+- 全体の成功パターンを「この人らしい表現」に翻訳して適用（テンプレコピペ禁止）
 - 読んだ人が「会いに行きたい」と自然に思える文章にする
 - 営業感・売り込み感を出さない
 - そのままコピペして使える完成形で出力する
@@ -463,20 +476,29 @@ ${body.industry ? `\n## 業種\n${body.industry}` : ""}
 
       const industryHintTitle = body.industry ? (industryHintMap[body.industry] ?? "") : "";
 
-      const titleSystemPrompt = `あなたは夜職業界専門のコピーライターです。ユーザーの過去の成功タイトルを学習し、スクロールが止まる・クリックされるタイトル候補を5つ生成します。`;
+      const titleSystemPrompt = `あなたは夜職業界専門のコピーライターです。ユーザーのAI学習プロフィール・過去の成功タイトル・実際にコピーして使われた文章・管理者承認の全体成功パターンを総合分析し、その人の個性を活かしつつスクロールが止まるタイトル候補を5つ生成します。使われるたびに学習データが蓄積され精度が上がる設計です。`;
 
-      const titleUserPrompt = `以下のユーザーデータを参考に、カテゴリ「${body.category ?? "写メ日記"}」のタイトルを5つ生成してください。
+      const titleUserPrompt = `以下の学習データを総合して、カテゴリ「${body.category ?? "写メ日記"}」のタイトルを5つ生成してください。
+
+## このユーザーのAI学習プロフィール（最優先で反映すること）
+${userAiProfileText || "初回使用中 - まだデータなし（使うほど精度が上がります）"}
 
 ## 生成条件
 ${categoryCtxTitle}
 ${diagTextTitle ? `\n## 診断情報\n${diagTextTitle}` : ""}
 ${body.industry ? `\n## 業種\n${body.industry}${industryHintTitle ? `\n業種別ポイント: ${industryHintTitle}` : ""}` : ""}
 
-## このユーザーの過去の高スコアタイトル（最優先で参考にすること）
+## このユーザーの過去の高スコアタイトル（強く踏襲）
 ${pastTitlesText}
+
+## このユーザーが実際にコピーして使った文章（タイトル傾向・語感の抽出ソース）
+${copiedTexts.slice(0, 3).length > 0 ? copiedTexts.slice(0, 3).map((t, i) => `【実使用例${i + 1}】\n${t}`).join("\n\n") : "まだデータなし"}
 
 ## 実績ある参考タイトル（管理者登録）
 ${goodTitlesText}
+
+## 全体の成功パターン（管理者承認／個別適用の参考指針）
+${approvedPatternSuggestions.length > 0 ? approvedPatternSuggestions.map((p, i) => `${i + 1}. ${p}`).join("\n") : "なし"}
 
 ## タイトル作成ルール
 - 15〜25文字が理想
@@ -484,6 +506,8 @@ ${goodTitlesText}
 - 読んだ人が「気になる・会いたい」と思える表現
 - 営業感・売り込み感を出さない
 - そのままコピペして使える完成形
+- 5案は方向性を変える（疑問形／断定／問いかけ／体験／感情直球 など）
+- AI学習プロフィール・実使用例の語感・絵文字の癖を継承（テンプレコピペ禁止）
 
 ## 出力形式（JSONのみ、説明文不要）
 {

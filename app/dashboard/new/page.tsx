@@ -513,6 +513,7 @@ export default function NewPostPage() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isGeneratingBody, setIsGeneratingBody] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+  const [titleGenerationError, setTitleGenerationError] = useState("");
   const [generatedTitleOptions, setGeneratedTitleOptions] = useState<TitleSuggestion[]>([]);
   const [showGuide, setShowGuide] = useState(false);
   const [showUsabilityFeedback, setShowUsabilityFeedback] = useState(false);
@@ -1197,6 +1198,7 @@ ${successLine}
 
   async function handleGenerateTitle() {
     setIsGeneratingTitle(true);
+    setTitleGenerationError("");
     try {
       const rawUser = localStorage.getItem("yorushokuCurrentUser");
       const currentUser = rawUser ? JSON.parse(rawUser) : null;
@@ -1245,11 +1247,10 @@ ${successLine}
         return;
       }
 
-      // API が空返却（レート制限以外の異常）のとき: ローカルテンプレでフォールバック
-      applyTitleSuggestions(buildTitleSuggestions());
+      // AI 生成に失敗した場合は固定テンプレにフォールバックせず、ユーザーに通知して再試行を促す
+      setTitleGenerationError("タイトル生成に失敗しました。少し時間を置いて再度お試しください。");
     } catch {
-      // ネットワーク/パース失敗: ローカルテンプレでフォールバック
-      applyTitleSuggestions(buildTitleSuggestions());
+      setTitleGenerationError("通信エラーが発生しました。ネットワークを確認して再度お試しください。");
     } finally {
       setIsGeneratingTitle(false);
     }
@@ -1554,6 +1555,11 @@ ${successLine}
                     <p className="mt-1.5 text-xs text-[#4d4866]">
                       上の項目を選ぶと、選択内容に沿ったタイトル候補を生成します
                     </p>
+                    {titleGenerationError && (
+                      <p className="mt-1.5 text-xs text-[#f87171]">
+                        {titleGenerationError}
+                      </p>
+                    )}
                   </div>
 
                   <div className="mb-5">
