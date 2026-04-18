@@ -112,6 +112,24 @@ export default function DevicePage() {
     }
   }
 
+  async function releaseOneFingerprint(fingerprint: string, email: string) {
+    if (!window.confirm(`${email} の端末紐付けを解除します。\n\n会員アカウントは削除されません。端末指紋だけがクリアされ、同端末から新規登録可能になります。\n\nよろしいですか？`)) return;
+    setBulkActing(true);
+    try {
+      const res = await fetch("/api/admin/device", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "release_fingerprint", fingerprint }),
+      });
+      const json = await res.json();
+      await fetchMembers();
+      setNotice(`${email} の端末を解除しました（${json.affectedCount ?? 0}件）`);
+      setTimeout(() => setNotice(""), 3000);
+    } finally {
+      setBulkActing(false);
+    }
+  }
+
   const filtered = members.filter(
     (m) => m.name?.includes(search) || m.email?.includes(search)
   );
@@ -212,6 +230,53 @@ export default function DevicePage() {
             <p className="mt-2 text-[10px] leading-5 text-[#4d4866]">
               すべての会員の端末紐付けを一度にクリアします。各会員は次回ログイン時に再度指紋が取得されます。会員アカウント自体は削除されません。
             </p>
+          </div>
+
+          {/* 登録端末一覧（メール + 指紋 + 解除ボタン） */}
+          <div className="mt-5 border-t border-[#3a1e27] pt-4">
+            <p className="text-xs font-semibold text-[#c8c2dc]">登録されている端末一覧</p>
+            <p className="mt-1 text-[10px] text-[#8b84a8]">
+              指紋を保存している会員の一覧です。「解除」ボタンで端末紐付けだけを外せます（会員アカウントは削除されません）。
+            </p>
+            <div className="mt-3 space-y-2">
+              {members.filter((m) => m.device_fingerprint).length === 0 ? (
+                <p className="py-4 text-center text-xs text-[#4d4866]">
+                  登録されている端末はありません
+                </p>
+              ) : (
+                members
+                  .filter((m) => m.device_fingerprint)
+                  .map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-[#231f36] bg-[#0e0c18] px-3 py-2.5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium text-[#f2eefb]">{m.email}</p>
+                        <p
+                          className="mt-1 truncate font-mono text-[10px] text-[#8b84a8]"
+                          title={m.device_fingerprint ?? ""}
+                        >
+                          {m.device_fingerprint?.slice(0, 24)}
+                          {(m.device_fingerprint?.length ?? 0) > 24 ? "…" : ""}
+                        </p>
+                        <p className="mt-0.5 text-[10px] text-[#4d4866]">
+                          登録: {formatDate(m.created_at)}
+                          {m.last_login_at ? ` ／ 最終ログイン: ${formatDate(m.last_login_at)}` : ""}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => m.device_fingerprint && releaseOneFingerprint(m.device_fingerprint, m.email)}
+                        disabled={bulkActing}
+                        className="shrink-0 rounded-lg border border-[#e85d8a] px-3 py-1.5 text-[10px] font-semibold text-[#e85d8a] transition hover:bg-[#e85d8a] hover:text-white disabled:opacity-50"
+                      >
+                        端末を解除
+                      </button>
+                    </div>
+                  ))
+              )}
+            </div>
           </div>
 
           {/* 重複指紋の表示 */}
