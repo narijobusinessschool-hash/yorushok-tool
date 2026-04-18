@@ -9,16 +9,9 @@ type Member = {
   email: string;
   plan: string;
   status: string;
-  device_status: string | null;
   device_fingerprint: string | null;
   last_login_at: string | null;
   created_at: string;
-};
-
-const DEVICE_CLASS: Record<string, string> = {
-  "登録済み": "bg-[#e8f7ee] text-[#1f7a43]",
-  "再承認待ち": "bg-[#fff3e8] text-[#b85c00]",
-  "未登録": "bg-[#f3eff6] text-[#6b6472]",
 };
 
 function formatDate(iso: string | null) {
@@ -51,13 +44,11 @@ export default function DevicePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ memberId: member.id, memberName: member.name, action }),
     });
-    const newStatus = action === "reset" ? "未登録" : "再承認待ち";
     setMembers((prev) =>
       prev.map((m) =>
         m.id === member.id
           ? {
               ...m,
-              device_status: newStatus,
               device_fingerprint: action === "reset" ? null : m.device_fingerprint,
             }
           : m,
@@ -134,12 +125,6 @@ export default function DevicePage() {
     (m) => m.name?.includes(search) || m.email?.includes(search)
   );
 
-  const stats = {
-    registered: members.filter((m) => m.device_status === "登録済み").length,
-    reapproval: members.filter((m) => m.device_status === "再承認待ち").length,
-    unregistered: members.filter((m) => !m.device_status || m.device_status === "未登録").length,
-  };
-
   // 端末指紋の保有統計
   const withFingerprint = members.filter((m) => m.device_fingerprint).length;
   const fingerprintMap = new Map<string, number>();
@@ -168,17 +153,21 @@ export default function DevicePage() {
         </div>
 
         {/* サマリー */}
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          {[
-            { label: "登録済み", value: stats.registered, color: "text-[#4ade80]" },
-            { label: "再承認待ち", value: stats.reapproval, color: "text-[#fb923c]" },
-            { label: "未登録", value: stats.unregistered, color: "text-[#8b84a8]" },
-          ].map((s) => (
-            <div key={s.label} className="rounded-2xl border border-[#231f36] bg-[#110e1c] p-4">
-              <p className="text-xs text-[#8b84a8]">{s.label}</p>
-              <p className={`mt-1 text-2xl font-bold ${s.color}`}>{s.value}<span className="ml-0.5 text-sm font-normal text-[#4d4866]">人</span></p>
-            </div>
-          ))}
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-[#231f36] bg-[#110e1c] p-4">
+            <p className="text-xs text-[#8b84a8]">総会員数</p>
+            <p className="mt-1 text-2xl font-bold text-[#f2eefb]">
+              {members.length}
+              <span className="ml-0.5 text-sm font-normal text-[#4d4866]">人</span>
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#231f36] bg-[#110e1c] p-4">
+            <p className="text-xs text-[#8b84a8]">端末指紋 保有</p>
+            <p className="mt-1 text-2xl font-bold text-[#4ade80]">
+              {withFingerprint}
+              <span className="ml-0.5 text-sm font-normal text-[#4d4866]">人</span>
+            </p>
+          </div>
         </div>
 
         {/* 端末指紋のグローバル操作 */}
@@ -328,51 +317,43 @@ export default function DevicePage() {
         <div className="mt-4 space-y-3">
           {loading && <p className="py-8 text-center text-sm text-[#4d4866]">読み込み中…</p>}
           {!loading && filtered.length === 0 && <p className="py-8 text-center text-sm text-[#4d4866]">会員が見つかりません</p>}
-          {filtered.map((m) => {
-            const ds = m.device_status ?? "未登録";
-            return (
-              <div key={m.id} className="rounded-2xl border border-[#231f36] bg-[#110e1c] p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-[#f2eefb]">{m.name}</p>
-                    <p className="mt-0.5 text-xs text-[#8b84a8]">{m.email}</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${DEVICE_CLASS[ds] ?? "bg-[#f3eff6] text-[#6b6472]"}`}>{ds}</span>
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${m.plan === "nbs" ? "bg-[#f4e2ea] text-[#7a2e4d]" : "bg-[#f0ecf4] text-[#9b92a4]"}`}>
-                        {m.plan === "nbs" ? "NBS" : "無料"}
+          {filtered.map((m) => (
+            <div key={m.id} className="rounded-2xl border border-[#231f36] bg-[#110e1c] p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-[#f2eefb]">{m.name || m.email}</p>
+                  <p className="mt-0.5 text-xs text-[#8b84a8]">{m.email}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${m.plan === "nbs" ? "bg-[#f4e2ea] text-[#7a2e4d]" : "bg-[#f0ecf4] text-[#9b92a4]"}`}>
+                      {m.plan === "nbs" ? "NBS" : "無料"}
+                    </span>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${m.device_fingerprint ? "bg-[#e8f7ee] text-[#1f7a43]" : "bg-[#f3eff6] text-[#6b6472]"}`}>
+                      {m.device_fingerprint ? "端末登録済" : "端末未登録"}
+                    </span>
+                    <span className="text-xs text-[#4d4866]">最終ログイン: {formatDate(m.last_login_at)}</span>
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-[#4d4866]">
+                    端末指紋: {m.device_fingerprint ? (
+                      <span className="font-mono text-[#8b84a8]" title={m.device_fingerprint}>
+                        {m.device_fingerprint.slice(0, 24)}…
                       </span>
-                      <span className="text-xs text-[#4d4866]">最終ログイン: {formatDate(m.last_login_at)}</span>
-                    </div>
-                    <p className="mt-1.5 text-[11px] text-[#4d4866]">
-                      端末指紋: {m.device_fingerprint ? (
-                        <span className="font-mono text-[#8b84a8]" title={m.device_fingerprint}>
-                          {m.device_fingerprint.slice(0, 12)}…
-                        </span>
-                      ) : (
-                        <span className="text-[#4d4866]">未取得</span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => handleAction(m, "reset")}
-                      disabled={!!acting}
-                      className="rounded-xl border border-[#2f2a45] px-3 py-1.5 text-xs text-[#8b84a8] transition hover:border-[#e85d8a]/50 hover:text-[#f2eefb] disabled:opacity-40"
-                    >
-                      デバイスリセット
-                    </button>
-                    <button
-                      onClick={() => handleAction(m, "set_reapproval")}
-                      disabled={!!acting}
-                      className="rounded-xl border border-[#5c3a1e] px-3 py-1.5 text-xs text-[#fb923c] transition hover:bg-[#5c3a1e]/20 disabled:opacity-40"
-                    >
-                      再承認を要求
-                    </button>
-                  </div>
+                    ) : (
+                      <span className="text-[#4d4866]">未取得</span>
+                    )}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleAction(m, "reset")}
+                    disabled={!!acting || !m.device_fingerprint}
+                    className="rounded-xl border border-[#2f2a45] px-3 py-1.5 text-xs text-[#8b84a8] transition hover:border-[#e85d8a]/50 hover:text-[#f2eefb] disabled:opacity-40"
+                  >
+                    デバイスリセット
+                  </button>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
     </main>

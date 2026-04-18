@@ -9,7 +9,7 @@ const supabaseAdmin = createClient(
 export async function GET() {
   const { data } = await supabaseAdmin
     .from("members")
-    .select("id, name, email, plan, status, device_status, device_fingerprint, last_login_at, created_at")
+    .select("id, name, email, plan, status, device_fingerprint, last_login_at, created_at")
     .neq("role", "管理者")
     .order("created_at", { ascending: false });
   return NextResponse.json({ members: data ?? [] });
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   if (action === "reset_all") {
     const { count } = await supabaseAdmin
       .from("members")
-      .update({ device_fingerprint: null, device_status: "未登録" }, { count: "exact" })
+      .update({ device_fingerprint: null }, { count: "exact" })
       .not("device_fingerprint", "is", null);
 
     await supabaseAdmin.from("usage_events").insert({
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     }
     const { count } = await supabaseAdmin
       .from("members")
-      .update({ device_fingerprint: null, device_status: "未登録" }, { count: "exact" })
+      .update({ device_fingerprint: null }, { count: "exact" })
       .eq("device_fingerprint", fingerprint);
 
     await supabaseAdmin.from("usage_events").insert({
@@ -59,15 +59,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, affectedCount: count ?? 0 });
   }
 
-  // 個別リセット・再承認要求（従来）
-  const deviceStatus = action === "reset" ? "未登録" : "再承認待ち";
-  try {
-    const updateData: Record<string, string | null> = { device_status: deviceStatus };
-    if (action === "reset") {
-      updateData.device_fingerprint = null;
-    }
-    await supabaseAdmin.from("members").update(updateData).eq("id", memberId);
-  } catch { /* device_status column may not exist */ }
+  // 個別リセット・再承認要求（従来 / 互換性維持）
+  if (action === "reset") {
+    await supabaseAdmin
+      .from("members")
+      .update({ device_fingerprint: null })
+      .eq("id", memberId);
+  }
 
   await supabaseAdmin.from("usage_events").insert({
     event_type: "admin_log",
