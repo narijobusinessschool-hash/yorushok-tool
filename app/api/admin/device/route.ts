@@ -16,11 +16,52 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { memberId, memberName, action } = await req.json();
+  const body = await req.json();
+  const { memberId, memberName, action, fingerprint } = body;
 
+  // 一括リセット: 全会員の端末指紋をクリア
+  if (action === "reset_all") {
+    const { count } = await supabaseAdmin
+      .from("members")
+      .update({ device_fingerprint: null, device_status: "未登録" }, { count: "exact" })
+      .not("device_fingerprint", "is", null);
+
+    await supabaseAdmin.from("usage_events").insert({
+      event_type: "admin_log",
+      user_id: null,
+      meta: { action: "device_reset_all", affectedCount: count ?? 0 },
+    });
+    return NextResponse.json({ ok: true, affectedCount: count ?? 0 });
+  }
+
+  // 指紋で解放: 特定の fingerprint 値を持つ全会員から指紋をクリア
+  if (action === "release_fingerprint") {
+    if (!fingerprint || typeof fingerprint !== "string") {
+      return NextResponse.json(
+        { error: "fingerprint is required" },
+        { status: 400 },
+      );
+    }
+    const { count } = await supabaseAdmin
+      .from("members")
+      .update({ device_fingerprint: null, device_status: "未登録" }, { count: "exact" })
+      .eq("device_fingerprint", fingerprint);
+
+    await supabaseAdmin.from("usage_events").insert({
+      event_type: "admin_log",
+      user_id: null,
+      meta: {
+        action: "device_release_fingerprint",
+        fingerprint,
+        affectedCount: count ?? 0,
+      },
+    });
+    return NextResponse.json({ ok: true, affectedCount: count ?? 0 });
+  }
+
+  // 個別リセット・再承認要求（従来）
   const deviceStatus = action === "reset" ? "未登録" : "再承認待ち";
   try {
-    // reset時は端末指紋も消去（同端末から再登録可能にするため）
     const updateData: Record<string, string | null> = { device_status: deviceStatus };
     if (action === "reset") {
       updateData.device_fingerprint = null;
