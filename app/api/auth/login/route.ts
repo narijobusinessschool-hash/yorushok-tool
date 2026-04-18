@@ -71,12 +71,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // 既存ユーザーの端末指紋バックフィル（初回ログイン時に一度だけ保存）
-    // 重複チェックはしない（既存会員への影響を避ける一度だけの取得）
+    // 端末指紋の最新化: ログインした端末の指紋を常に反映する
+    // - 初回ログイン: NULL → 現在の端末指紋を保存（旧バックフィル動作）
+    // - 別端末でログイン: 保存済 ≠ 現在 → 上書き（過去の端末情報は自動で消える）
+    // - 同じ端末で再ログイン: 同一値なので書き込み不要（無駄な更新を避ける）
     if (
       deviceFingerprint &&
       typeof deviceFingerprint === "string" &&
-      !data.device_fingerprint
+      deviceFingerprint.trim().length > 0 &&
+      data.device_fingerprint !== deviceFingerprint
     ) {
       await supabaseAdmin
         .from("members")
