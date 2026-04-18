@@ -487,6 +487,7 @@ function buildSimpleMap(items: string[]) {
 
 export default function NewPostPage() {
   const [category, setCategory] = useState<Category>("写メ日記");
+  const [stageName, setStageName] = useState("");
 
   const [title, setTitle] = useState("");
   const [emotionTarget, setEmotionTarget] = useState<EmotionTarget | "">("");
@@ -1158,6 +1159,7 @@ ${successLine}
         body: JSON.stringify({
           mode: "generate_body",
           memberId: currentUser?.id,
+          stageName: stageName.trim() || undefined,
           category,
           purpose: category === "写メ日記" ? shameNikkiGoal : undefined,
           emotionTarget: category === "写メ日記" ? emotionTarget : undefined,
@@ -1219,6 +1221,7 @@ ${successLine}
         body: JSON.stringify({
           mode: "generate_title",
           memberId: currentUser?.id,
+          stageName: stageName.trim() || undefined,
           category,
           purpose: category === "写メ日記" ? shameNikkiGoal : undefined,
           emotionTarget: category === "写メ日記" ? emotionTarget : undefined,
@@ -1290,6 +1293,7 @@ ${successLine}
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           memberId: currentUserId,
+          stageName: stageName.trim() || undefined,
           title: category === "写メ日記" ? title : undefined,
           text,
           category,
@@ -1450,6 +1454,21 @@ ${successLine}
                   </div>
                 </div>
               )}
+
+              <div className="mb-5">
+                <label className="mb-2 block text-sm font-medium text-[#c8c2dc]">
+                  源氏名（任意）
+                </label>
+                <input
+                  value={stageName}
+                  onChange={(e) => setStageName(e.target.value)}
+                  placeholder="例：りお"
+                  className="h-12 w-full rounded-2xl border border-[#2f2a45] bg-[#0e0c18] px-4 text-[#f2eefb] outline-none transition focus:border-[#e85d8a] focus:ring-2 focus:ring-[#e85d8a]/20"
+                />
+                <p className="mt-1.5 text-xs text-[#4d4866]">
+                  入力すると生成文で自分の名前を指す際にこの名前が使われます。未入力時は文中で名前が必要な箇所に「【源氏名】」と表示されます（店舗・名前の変更時はその都度書き換えてください）。
+                </p>
+              </div>
 
               <div className="mb-5 flex items-center justify-between">
                 <span className="text-sm font-medium text-[#c8c2dc]">カテゴリ</span>

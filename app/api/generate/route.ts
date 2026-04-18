@@ -53,6 +53,7 @@ type DiagnosisInfo = {
 type RequestBody = {
   memberId?: string;
   mode?: "generate_body" | "generate_title";
+  stageName?: string;
   title?: string;
   text?: string;
   category?: "写メ日記" | "オキニトーク" | "SNS";
@@ -146,6 +147,25 @@ function getCost(
   const hasBody = !!text?.trim();
   const scored = (hasTitle ? 1 : 0) + (hasBody ? 1 : 0);
   return Math.max(1, scored);
+}
+
+// 生成・添削の全モード共通で注入する「名前の扱い」ルール。
+// 学習データに含まれる他ユーザーの名前が流入するのを防ぎ、
+// 源氏名未指定時は置換用プレースホルダ【源氏名】を出力させる。
+function buildStageNameRule(stageName: string | undefined): string {
+  const name = stageName?.trim();
+  if (name) {
+    return `## 名前の扱い（絶対厳守）
+- このユーザーの源氏名: 「${name}」
+- 生成文で自分を名乗る際は必ずこの源氏名を使用
+- 学習データ（自己学習例・実使用例・全体成功パターン・参考例）に含まれる他の名前は絶対に引用・流用しない
+- 他の名前が思い浮かんでも必ず「${name}」に置き換える`;
+  }
+  return `## 名前の扱い（絶対厳守）
+- このユーザーの源氏名: 未指定
+- 文中で自分の名前が必要な箇所は「【源氏名】」という文字列をそのまま出力（ユーザーが後で置換する前提）
+- 他の具体的な名前（学習データ内の名前も含む）は絶対に使わない
+- 名前を避けたい場合は「私」「こっち」「こちら」等の一人称で自然に回避してもよい`;
 }
 
 async function updateUserAiProfile(memberId: string, adminClient: any, openaiClient: OpenAI) {
@@ -406,6 +426,8 @@ export async function POST(req: Request) {
       const genUserPrompt = `以下の学習データを総合して、カテゴリ「${body.category ?? "写メ日記"}」の本文を1つ生成してください。
 添削ではなく、ゼロから新しい文章を作成してください。
 
+${buildStageNameRule(body.stageName)}
+
 ## このユーザーのAI学習プロフィール（最優先で反映すること）
 ${userAiProfileText || "初回使用中 - まだデータなし（使うほど精度が上がります）"}
 
@@ -479,6 +501,8 @@ ${approvedPatternSuggestions.length > 0 ? approvedPatternSuggestions.map((p, i) 
       const titleSystemPrompt = `あなたは夜職業界専門のコピーライターです。ユーザーのAI学習プロフィール・過去の成功タイトル・実際にコピーして使われた文章・管理者承認の全体成功パターンを総合分析し、その人の個性を活かしつつスクロールが止まるタイトル候補を5つ生成します。使われるたびに学習データが蓄積され精度が上がる設計です。`;
 
       const titleUserPrompt = `以下の学習データを総合して、カテゴリ「${body.category ?? "写メ日記"}」のタイトルを5つ生成してください。
+
+${buildStageNameRule(body.stageName)}
 
 ## このユーザーのAI学習プロフィール（最優先で反映すること）
 ${userAiProfileText || "初回使用中 - まだデータなし（使うほど精度が上がります）"}
@@ -766,6 +790,8 @@ ${approvedPatternSuggestions.length > 0 ? approvedPatternSuggestions.map((p, i) 
 - スコアは添削前の現状文章の評価点`;
 
     const userPrompt = `以下の情報をもとに添削してください。
+
+${buildStageNameRule(body.stageName)}
 
 ## カテゴリ
 ${category}
