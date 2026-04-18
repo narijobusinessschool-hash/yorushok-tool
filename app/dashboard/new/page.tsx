@@ -1188,12 +1188,70 @@ ${successLine}
     }
   }
 
-  function handleGenerateTitle() {
-    const suggestions = buildTitleSuggestions();
-    if (suggestions.length > 0) {
-      setGeneratedTitleOptions(suggestions);
-      setTitle(suggestions[0].text);
-      setGeneratedTitle(suggestions[0].text);
+  function applyTitleSuggestions(suggestions: TitleSuggestion[]) {
+    if (suggestions.length === 0) return;
+    setGeneratedTitleOptions(suggestions);
+    setTitle(suggestions[0].text);
+    setGeneratedTitle(suggestions[0].text);
+  }
+
+  async function handleGenerateTitle() {
+    setIsGeneratingTitle(true);
+    try {
+      const rawUser = localStorage.getItem("yorushokuCurrentUser");
+      const currentUser = rawUser ? JSON.parse(rawUser) : null;
+      const rawGoodTitles = localStorage.getItem("yorushokuGoodTitles");
+      const goodTitles = rawGoodTitles ? JSON.parse(rawGoodTitles) : [];
+
+      const diagnosisInfo = profile
+        ? {
+            typeName: profile.diagnosis.typeName,
+            bestTarget: profile.diagnosis.bestTarget,
+            strengths: profile.diagnosis.strengths,
+          }
+        : undefined;
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "generate_title",
+          memberId: currentUser?.id,
+          category,
+          purpose: category === "写メ日記" ? shameNikkiGoal : undefined,
+          emotionTarget: category === "写メ日記" ? emotionTarget : undefined,
+          sellType: category === "写メ日記" ? sellType : undefined,
+          industry: profile?.basic.industry,
+          diagnosisInfo,
+          goodTitles,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.status === 429 && data?.error === "limit_exceeded") {
+        setShowLimitModal(true);
+        return;
+      }
+
+      const apiSuggestions: TitleSuggestion[] = Array.isArray(data?.titleSuggestions)
+        ? data.titleSuggestions
+            .filter((s: TitleSuggestion) => s && typeof s.text === "string" && s.text.trim().length > 0)
+            .map((s: TitleSuggestion) => ({ score: Number(s.score) || 0, text: s.text }))
+        : [];
+
+      if (apiSuggestions.length > 0) {
+        applyTitleSuggestions(apiSuggestions);
+        return;
+      }
+
+      // API が空返却（レート制限以外の異常）のとき: ローカルテンプレでフォールバック
+      applyTitleSuggestions(buildTitleSuggestions());
+    } catch {
+      // ネットワーク/パース失敗: ローカルテンプレでフォールバック
+      applyTitleSuggestions(buildTitleSuggestions());
+    } finally {
+      setIsGeneratingTitle(false);
     }
   }
 
@@ -1488,9 +1546,10 @@ ${successLine}
                     <button
                       type="button"
                       onClick={handleGenerateTitle}
-                      className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#e85d8a] px-5 text-sm font-semibold text-white transition hover:bg-[#d4507c]"
+                      disabled={isGeneratingTitle}
+                      className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#e85d8a] px-5 text-sm font-semibold text-white transition hover:bg-[#d4507c] disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      タイトルを生成
+                      {isGeneratingTitle ? "生成中…" : "タイトルを生成"}
                     </button>
                     <p className="mt-1.5 text-xs text-[#4d4866]">
                       上の項目を選ぶと、選択内容に沿ったタイトル候補を生成します
