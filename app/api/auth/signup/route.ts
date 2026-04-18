@@ -46,33 +46,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "このメールアドレスはすでに登録されています。" }, { status: 409 });
     }
 
-    // マルチシグナル判定: 同一 device_fingerprint + 同一 IP + 1時間以内 のみブロック
-    // 日本市場の均質端末環境（iPhone+Safari+日本語等）で指紋衝突が起きても誤爆しない。
-    // 悪用パターン（同一PCで連続量産）は確実に block できる設計。
+    // 端末指紋による複アカ量産防止（原点回帰）
+    // 同一 device_fingerprint を持つ「有効な」アカウントが 1件でも存在すれば block。
+    // 誤爆時は admin/device 画面から個別 or 一括で解放可能。
+    // 期限切れ未認証レコードは「塞ぎ込み」として無視（認証メール紛失ユーザーの救済）。
     const currentIp = getClientIp(req);
     if (deviceFingerprint && typeof deviceFingerprint === "string") {
       const { data: fpMatches } = await supabaseAdmin
         .from("members")
-        .select("id, email_verified, verification_expires_at, signup_ip, created_at")
+        .select("id, email_verified, verification_expires_at")
         .eq("device_fingerprint", deviceFingerprint);
 
       const nowMs = Date.now();
-      const oneHourMs = 60 * 60 * 1000;
-
       const hasActiveDuplicate = (fpMatches ?? []).some((m) => {
-        // 認証済 or 期限内の未認証レコードのみ有効。期限切れ未認証は「塞ぎ込み」として無視
-        const isActive =
-          m.email_verified ||
-          (m.verification_expires_at &&
-            new Date(m.verification_expires_at).getTime() > nowMs);
-        if (!isActive) return false;
-
-        // マルチシグナル判定: 同一 IP かつ 1時間以内の場合のみ block
-        const ipMatch = !!(currentIp && m.signup_ip && m.signup_ip === currentIp);
-        const timeMatch = !!(
-          m.created_at && nowMs - new Date(m.created_at).getTime() < oneHourMs
-        );
-        return ipMatch && timeMatch;
+        if (m.email_verified) return true;
+        if (m.verification_expires_at) {
+          return new Date(m.verification_expires_at).getTime() > nowMs;
+        }
+        return true;
       });
 
       if (hasActiveDuplicate) {
@@ -80,7 +71,7 @@ export async function POST(req: Request) {
           {
             error: "duplicate_device",
             message:
-              "短時間で複数の登録が検出されました。同じ端末・同じネットワークからの連続登録は制限されています。心当たりがない場合は下記までお問い合わせください。",
+              "この端末は既に登録されています。別のアカウントをお持ちの場合はそちらでログインしてください。心当たりがない場合は下記までお問い合わせください。",
             contactLine: "https://line.me/R/ti/p/%40201kgbng",
             contactEmail: "narijo.businessschool@gmail.com",
           },
