@@ -52,7 +52,7 @@ export async function notifyNewMember(email: string, memberId: string | number) 
        <p><strong>会員ID:</strong> ${memberId}</p>
        <p><strong>登録日時:</strong> ${jst}</p>
        <hr>
-       <p><a href="https://yorushok-tool.vercel.app/admin/members">管理画面で確認 →</a></p>`
+       <p><a href="https://syamecoach.narijo.net/admin/members">管理画面で確認 →</a></p>`
     ),
     sendPush(
       "🎉 新規会員登録",

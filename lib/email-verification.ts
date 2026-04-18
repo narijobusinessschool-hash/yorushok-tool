@@ -7,7 +7,7 @@ const EMAIL_FROM =
   process.env.EMAIL_FROM_ADDRESS ?? "noreply@narijo.net";
 const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME ?? "シャメコーチ";
 const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL ?? "https://yorushok-tool.vercel.app";
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://syamecoach.narijo.net";
 
 export function generateVerificationToken(): string {
   return randomBytes(32).toString("hex");

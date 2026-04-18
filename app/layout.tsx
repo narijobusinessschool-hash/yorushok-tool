@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const BASE_URL = "https://yorushok-tool.vercel.app";
+const BASE_URL = "https://syamecoach.narijo.net";
 
 export const metadata: Metadata = {
   title: "シャメコーチ | 写メ日記AI添削ツール",

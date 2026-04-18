@@ -120,7 +120,7 @@ export default function Home() {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     name: "シャメコーチ",
-    url: "https://yorushok-tool.vercel.app",
+    url: "https://syamecoach.narijo.net",
     description: "夜職専用の写メ日記・オキニトークAI添削ツール。100点満点スコアで指名が増える文章をAIが設計します。",
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
