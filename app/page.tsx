@@ -68,8 +68,9 @@ export default function Home() {
       const json = await res.json();
 
       if (!res.ok) {
+        // ログイン失敗時はどのパターンでも再送導線を出すため、入力メールを保持
+        setUnverifiedEmail(email.trim());
         if (json?.error === "email_not_verified") {
-          setUnverifiedEmail(json.email ?? email.trim());
           setError(json.message ?? "メールアドレスの確認が完了していません。");
           return;
         }
@@ -256,19 +257,41 @@ export default function Home() {
               <div className="rounded-xl border border-[#5c1a2e] bg-[#1e0a12] px-4 py-3 text-sm text-[#f87171] leading-6">
                 {error}
                 {unverifiedEmail && (
-                  <div className="mt-3 flex flex-col gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleResendVerification(unverifiedEmail)}
-                      disabled={resendLoading}
-                      className="inline-flex items-center justify-center rounded-xl border border-[#e85d8a] bg-transparent px-4 py-2 text-xs font-semibold text-[#e85d8a] transition hover:bg-[#e85d8a] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {resendLoading ? "送信中…" : "認証メールを再送する"}
-                    </button>
-                    {resendMessage && (
-                      <p className="text-xs text-[#c8c2dc]">{resendMessage}</p>
-                    )}
-                  </div>
+                  <>
+                    {/* 既存ユーザー導線: 認証メール再送 */}
+                    <div className="mt-3 border-t border-[#5c1a2e] pt-3">
+                      <p className="text-xs leading-6 text-[#c8c2dc]">
+                        ✦ 既に登録済みでメール認証がお済みでない方
+                      </p>
+                      <p className="mt-1.5 text-[11px] text-[#8b84a8]">
+                        送信先: <span className="text-[#c8c2dc]">{unverifiedEmail}</span>
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleResendVerification(unverifiedEmail)}
+                        disabled={resendLoading}
+                        className="mt-2 inline-flex items-center justify-center rounded-xl border border-[#e85d8a] bg-transparent px-4 py-2 text-xs font-semibold text-[#e85d8a] transition hover:bg-[#e85d8a] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {resendLoading ? "送信中…" : "認証メールを再送する"}
+                      </button>
+                      {resendMessage && (
+                        <p className="mt-2 text-xs text-[#c8c2dc]">{resendMessage}</p>
+                      )}
+                    </div>
+
+                    {/* 新規ユーザー導線: 登録ページへ */}
+                    <div className="mt-3 border-t border-[#5c1a2e] pt-3">
+                      <p className="text-xs leading-6 text-[#c8c2dc]">
+                        ✦ アカウントをまだお持ちでない方
+                      </p>
+                      <a
+                        href="/signup"
+                        className="mt-2 inline-flex items-center justify-center rounded-xl border border-[#2f2a45] bg-transparent px-4 py-2 text-xs font-semibold text-[#c8c2dc] transition hover:border-[#e85d8a] hover:text-[#e85d8a]"
+                      >
+                        無料で新規登録する →
+                      </a>
+                    </div>
+                  </>
                 )}
               </div>
             )}
