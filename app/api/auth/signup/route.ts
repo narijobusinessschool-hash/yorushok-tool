@@ -32,15 +32,21 @@ export async function POST(req: Request) {
     if (!email || !password) {
       return NextResponse.json({ error: "メールアドレスとパスワードを入力してください。" }, { status: 400 });
     }
-    if (password.length < 8) {
+
+    // 入力値の正規化（login と同じルール）
+    const emailNorm = email.trim().toLowerCase();
+    const passwordNorm = password.replace(/[\s　]+$/u, "").replace(/^[\s　]+/u, "");
+
+    if (passwordNorm.length < 8) {
       return NextResponse.json({ error: "パスワードは8文字以上で設定してください。" }, { status: 400 });
     }
 
+    // 大文字小文字を区別せず重複チェック（既存に Foo@... があれば foo@... も拒否）
     const { data: existing } = await supabaseAdmin
       .from("members")
       .select("id")
-      .eq("email", email.trim())
-      .single();
+      .ilike("email", emailNorm)
+      .maybeSingle();
 
     if (existing) {
       return NextResponse.json({ error: "このメールアドレスはすでに登録されています。" }, { status: 409 });
@@ -80,14 +86,14 @@ export async function POST(req: Request) {
       }
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(passwordNorm, 12);
     const verificationToken = generateVerificationToken();
     const verificationExpiresAt = buildVerificationExpiresAt();
 
     const { data, error: insertError } = await supabaseAdmin
       .from("members")
       .insert({
-        email: email.trim(),
+        email: emailNorm,
         password: hashedPassword,
         role: "一般会員",
         status: "契約中",
@@ -109,10 +115,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "登録に失敗しました。もう一度お試しください。" }, { status: 500 });
     }
 
-    notifyNewMember(email.trim(), data.id).catch(() => {});
+    notifyNewMember(emailNorm, data.id).catch(() => {});
 
     // 認証メール送信（失敗しても登録は成功扱い、クライアントに再送ボタンを出す前提）
-    const emailResult = await sendVerificationEmail(email.trim(), verificationToken);
+    const emailResult = await sendVerificationEmail(emailNorm, verificationToken);
 
     return NextResponse.json({
       status: "verification_sent",

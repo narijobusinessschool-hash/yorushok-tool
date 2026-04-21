@@ -21,10 +21,13 @@ export async function POST(req: Request) {
       );
     }
 
+    const emailNorm = email.trim().toLowerCase();
+
+    // 大小区別なし検索（旧データに大文字残存があってもヒット）
     const { data: member } = await supabaseAdmin
       .from("members")
       .select("id, email, email_verified, verification_expires_at")
-      .eq("email", email.trim())
+      .ilike("email", emailNorm)
       .maybeSingle();
 
     // 会員が存在しない or 既に認証済みでも同一レスポンス（アカウント存在の探り防止）

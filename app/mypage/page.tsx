@@ -138,31 +138,21 @@ export default function MyPage() {
       }
       const currentUser = JSON.parse(raw);
 
-      // 現在のパスワードを確認
-      const { data: member, error: fetchError } = await supabase
-        .from("members")
-        .select("id, password")
-        .eq("id", currentUser.id)
-        .single();
+      // bcrypt ハッシュ化と現在パスワード照合をサーバ側に集約（クライアントから
+      // members テーブルを直接書き換えない、平文保存も発生させない）
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memberId: currentUser.id,
+          currentPassword,
+          newPassword,
+        }),
+      });
+      const json = await res.json();
 
-      if (fetchError || !member) {
-        setPwError("アカウント情報の取得に失敗しました。");
-        return;
-      }
-
-      if (member.password !== currentPassword) {
-        setPwError("現在のパスワードが正しくありません。");
-        return;
-      }
-
-      // 新しいパスワードに更新
-      const { error: updateError } = await supabase
-        .from("members")
-        .update({ password: newPassword })
-        .eq("id", currentUser.id);
-
-      if (updateError) {
-        setPwError("パスワードの更新に失敗しました。もう一度お試しください。");
+      if (!res.ok) {
+        setPwError(json.error ?? "パスワードの更新に失敗しました。");
         return;
       }
 

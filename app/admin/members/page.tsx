@@ -152,6 +152,8 @@ export default function AdminMembersPage() {
   const [newNote, setNewNote] = useState("");
   const [generatedPassword, setGeneratedPassword] = useState(generatePassword());
   const [message, setMessage] = useState("");
+  // パスワード再発行で生成された仮パスワードの一時表示用（コピーするまで残す）
+  const [resetResult, setResetResult] = useState<{ memberId: string; newPassword: string } | null>(null);
 
   const filteredMembers = useMemo(() => {
     return members.filter((member) => {
@@ -233,6 +235,33 @@ export default function AdminMembersPage() {
           : m
       )
     );
+  }
+
+  async function resetPassword(memberId: string, memberEmail: string) {
+    const confirmed = window.confirm(
+      `${memberEmail} のパスワードを再発行します。\n\n` +
+        `・現在のパスワードは無効になります\n` +
+        `・新しい仮パスワードは画面に表示されます（1回だけ）\n` +
+        `・LINE等で本人にお伝えください\n\n` +
+        `実行しますか？`,
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch("/api/admin/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId, memberEmail }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.newPassword) {
+        showMessage(json.error ?? "パスワード再発行に失敗しました");
+        return;
+      }
+      setResetResult({ memberId, newPassword: json.newPassword });
+    } catch {
+      showMessage("再発行処理中にエラーが発生しました");
+    }
   }
 
   async function deleteMember(memberId: string, memberEmail: string) {
@@ -654,12 +683,76 @@ export default function AdminMembersPage() {
                       </p>
 
                       <p className="mt-4 text-xs text-[#7b7682]">初期パスワード</p>
-                      <p className="mt-1 text-sm font-medium text-[#2c2933]">
-                        {member.password}
-                      </p>
+                      {member.password.startsWith("$2b$") || member.password.startsWith("$2a$") ? (
+                        <div className="mt-1">
+                          <p className="text-sm font-medium italic text-[#9b92a4]">
+                            （暗号化済み・ここからは確認できません）
+                          </p>
+                          <p className="mt-1 text-[10px] leading-5 text-[#7b7682]">
+                            本人が忘れた場合は下の「🔑 パスワード再発行」を使ってください。
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="mt-1 flex items-start gap-2">
+                          <p className="flex-1 select-all rounded-lg bg-[#f3f0f6] px-2 py-1 font-mono text-sm font-medium text-[#2c2933] break-all">
+                            {member.password}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(member.password);
+                              showMessage("コピーしました");
+                            }}
+                            className="inline-flex h-7 shrink-0 items-center justify-center rounded-lg border border-[#d8d3dc] bg-white px-2 text-xs text-[#5d5965] hover:bg-[#faf8fb]"
+                          >
+                            コピー
+                          </button>
+                        </div>
+                      )}
                       <p className="mt-3 text-xs leading-6 text-[#7b7682]">
                         後で会員側が変更する前提です。
                       </p>
+
+                      {/* パスワード再発行 */}
+                      <div className="mt-4 border-t border-[#ece7ef] pt-4">
+                        {resetResult?.memberId === member.id ? (
+                          <div className="rounded-xl border border-[#1f7a43] bg-[#e8f7ee] p-3">
+                            <p className="text-xs font-semibold text-[#1f7a43]">
+                              ✓ 新しい仮パスワード（コピーして本人へ）
+                            </p>
+                            <p className="mt-2 select-all rounded-lg bg-white px-3 py-2 font-mono text-base font-bold text-[#2c2933]">
+                              {resetResult.newPassword}
+                            </p>
+                            <div className="mt-2 flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(resetResult.newPassword);
+                                  showMessage("コピーしました");
+                                }}
+                                className="inline-flex h-8 items-center justify-center rounded-lg bg-[#1f7a43] px-3 text-xs font-semibold text-white transition hover:bg-[#176633]"
+                              >
+                                コピー
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setResetResult(null)}
+                                className="inline-flex h-8 items-center justify-center rounded-lg border border-[#d8d3dc] bg-white px-3 text-xs font-medium text-[#5d5965] transition hover:bg-[#faf8fb]"
+                              >
+                                閉じる
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => resetPassword(member.id, member.email)}
+                            className="inline-flex h-10 items-center justify-center rounded-xl border border-[#a3476b] bg-white px-4 text-xs font-semibold text-[#a3476b] transition hover:bg-[#fdf0f4]"
+                          >
+                            🔑 パスワード再発行
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 

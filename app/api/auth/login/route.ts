@@ -15,11 +15,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "メールアドレスとパスワードを入力してください。" }, { status: 400 });
     }
 
-    const { data, error } = await supabaseAdmin
+    // 入力値の正規化
+    // - email: 大小区別なし扱いにするため lowercase 統一 + trim
+    // - password: コピペ末尾スペース・全角スペース・改行による誤一致失敗を防止
+    const emailNorm = email.trim().toLowerCase();
+    const passwordNorm = password.replace(/[\s　]+$/u, "").replace(/^[\s　]+/u, "");
+
+    // メアド検索: 旧データに大文字混在が残っていてもヒットさせる
+    let { data, error } = await supabaseAdmin
       .from("members")
       .select("*")
-      .eq("email", email.trim())
-      .single();
+      .eq("email", emailNorm)
+      .maybeSingle();
+
+    if (!data) {
+      // フォールバック: DB に大文字残存している場合に ilike で完全一致検索
+      const { data: alt } = await supabaseAdmin
+        .from("members")
+        .select("*")
+        .ilike("email", emailNorm)
+        .maybeSingle();
+      data = alt ?? null;
+      error = null;
+    }
 
     if (error || !data) {
       return NextResponse.json({ error: "メールアドレスまたはパスワードが違います。" }, { status: 401 });
@@ -30,13 +48,17 @@ export async function POST(req: Request) {
     const isHashed = data.password?.startsWith("$2b$") || data.password?.startsWith("$2a$");
 
     if (isHashed) {
-      passwordMatch = await bcrypt.compare(password, data.password);
+      // 正規化版で先に試行 → 失敗時は生入力でも試行（旧データ救済）
+      passwordMatch = await bcrypt.compare(passwordNorm, data.password);
+      if (!passwordMatch && passwordNorm !== password) {
+        passwordMatch = await bcrypt.compare(password, data.password);
+      }
     } else {
-      // 平文比較（既存ユーザー移行用）
-      passwordMatch = data.password === password;
+      // 平文比較（既存ユーザー移行用）。正規化版・生版どちらでも一致を許容
+      passwordMatch = data.password === passwordNorm || data.password === password;
       if (passwordMatch) {
-        // 平文パスワードをハッシュ化してDBを更新（自動移行）
-        const hashed = await bcrypt.hash(password, 12);
+        // 平文を bcrypt ハッシュへ移行（以後 bcrypt.compare で判定）
+        const hashed = await bcrypt.hash(passwordNorm, 12);
         await supabaseAdmin
           .from("members")
           .update({ password: hashed })
