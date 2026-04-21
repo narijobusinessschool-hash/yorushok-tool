@@ -80,17 +80,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "現在このアカウントの利用が制限されています。管理者にお問い合わせください。" }, { status: 403 });
     }
 
-    // メール認証未完了の場合はログイン拒否（既存ユーザーは email_verified=true で初期化済なので影響なし）
+    // メール認証チェック
+    // フェイルセーフ: verification_token が NULL なら「認証フロー未通過の既存ユーザー」と判定し
+    //                 ログイン時に自動 true 化する（migration 漏れ・何らかで false に戻ったケースの救済）
+    // 拒否対象: 新規 signup でメール認証メールが送信済みかつ未完了のユーザー（token あり）のみ
     if (data.email_verified === false) {
-      return NextResponse.json(
-        {
-          error: "email_not_verified",
-          message:
-            "メールアドレスの確認が完了していません。登録時にお送りした確認メールのリンクをクリックしてください。",
-          email: data.email,
-        },
-        { status: 403 },
-      );
+      if (!data.verification_token) {
+        await supabaseAdmin
+          .from("members")
+          .update({ email_verified: true })
+          .eq("id", data.id);
+      } else {
+        return NextResponse.json(
+          {
+            error: "email_not_verified",
+            message:
+              "メールアドレスの確認が完了していません。登録時にお送りした確認メールのリンクをクリックしてください。",
+            email: data.email,
+          },
+          { status: 403 },
+        );
+      }
     }
 
     // 端末指紋の最新化: ログインした端末の指紋を常に反映する
