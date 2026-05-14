@@ -218,10 +218,14 @@
 
     .info-box ul { list-style: none; }
     .info-box li {
-      font-size: 0.8rem; color: var(--text-sub); padding: 5px 0;
-      display: flex; align-items: baseline; gap: 10px; line-height: 1.7;
+      position: relative;
+      font-size: 0.8rem; color: var(--text-sub);
+      padding: 5px 0 5px 22px; line-height: 1.7;
     }
-    .info-box li::before { content: '—'; color: rgba(228,121,17,0.5); flex-shrink: 0; }
+    .info-box li::before {
+      content: '—'; color: rgba(228,121,17,0.5);
+      position: absolute; left: 0; top: 5px;
+    }
     .info-box li strong { color: var(--text-white); font-weight: 500; }
 
     .footer { background: #060810; padding: 30px 0; text-align: center; }
