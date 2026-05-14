@@ -64,6 +64,7 @@ export default function PlanLimitModal({ memberId, onClose }: Props) {
             {diff !== null && diff > 0 && (
               <div className="mt-3 rounded-xl bg-[#1a1420] px-3 py-2">
                 <p className="text-sm font-bold text-[#e85d8a]">→ スコアが +{diff}点 上がりました</p>
+                <p className="mt-1 text-xs leading-5 text-[#8b84a8]">この伸びを&ldquo;続けて指名&rdquo;に変えるのが NBS です。</p>
               </div>
             )}
           </div>
@@ -72,7 +73,7 @@ export default function PlanLimitModal({ memberId, onClose }: Props) {
         {/* NBS紹介 */}
         <div className="mt-5">
           <p className="text-xl font-bold text-[#f2eefb]">このAIツールは<br />「写メ日記の大学 NBS」の一部です</p>
-          <p className="mt-1.5 text-sm text-[#8b84a8]">月9,800円は、ツール利用料ではなく&ldquo;月謝&rdquo;です</p>
+          <p className="mt-1.5 text-sm text-[#8b84a8]">月9,800円（1日あたり約320円）は、ツール利用料ではなく&ldquo;月謝&rdquo;です</p>
           <ul className="mt-4 space-y-2.5">
             {[
               "マーケの基礎が学べる動画コース 50本以上＋コース外動画",
