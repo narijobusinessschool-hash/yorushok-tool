@@ -71,21 +71,22 @@ export default function PlanLimitModal({ memberId, onClose }: Props) {
 
         {/* NBS紹介 */}
         <div className="mt-5">
-          <p className="text-xl font-bold text-[#f2eefb]">NBS月額9,800円で<br />無制限に使えます</p>
+          <p className="text-xl font-bold text-[#f2eefb]">このAIツールは<br />「写メ日記の大学 NBS」の一部です</p>
+          <p className="mt-1.5 text-sm text-[#8b84a8]">月9,800円は、ツール利用料ではなく&ldquo;月謝&rdquo;です</p>
           <ul className="mt-4 space-y-2.5">
             {[
-              "写メ日記添削AIツール（無制限）",
-              "基礎から学べる動画コンテンツ",
-              "テキストコンテンツ",
-              "ライブアーカイブ",
+              "マーケの基礎が学べる動画コース 50本以上＋コース外動画",
+              "テキスト教材・ライブアーカイブ 見放題",
+              "シャメコーチAI 回数無制限（添削・生成し放題）",
+              "「刺さる／刺さらない」を自分で見抜く力がつく",
             ].map((item) => (
-              <li key={item} className="flex items-center gap-2.5 text-sm text-[#c8c2dc]">
-                <span className="text-[#4ade80]">✓</span>{item}
+              <li key={item} className="flex items-start gap-2.5 text-sm text-[#c8c2dc]">
+                <span className="mt-0.5 text-[#4ade80]">✓</span>{item}
               </li>
             ))}
           </ul>
           <p className="mt-4 rounded-[12px] border border-[#2f2a45] bg-[#0e0c18] px-4 py-3 text-sm leading-6 text-[#8b84a8]">
-            指名1本 = 数万円。月9,800円で毎月の指名が増えるなら、これは投資です。
+            動画で学び、AIで判断力をつける。だから&ldquo;楽して指名が取れる人&rdquo;になれます。指名1本＝数万円、月9,800円は投資です。
           </p>
         </div>
 
