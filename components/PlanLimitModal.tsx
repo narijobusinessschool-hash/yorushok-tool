@@ -73,7 +73,7 @@ export default function PlanLimitModal({ memberId, onClose }: Props) {
         {/* NBS紹介 */}
         <div className="mt-5">
           <p className="text-xl font-bold text-[#f2eefb]">このAIツールは<br />「写メ日記の大学 NBS」の一部です</p>
-          <p className="mt-1.5 text-sm text-[#8b84a8]">月9,800円（1日あたり約320円）は、ツール利用料ではなく&ldquo;NBS全機能分&rdquo;です</p>
+          <p className="mt-1.5 text-sm text-[#8b84a8]">月9,800円（1日あたり約320円）は、<br />ツール利用料ではなく&ldquo;NBS全機能分&rdquo;です</p>
           <ul className="mt-4 space-y-2.5">
             {[
               "マーケの基礎が学べる動画コース\n50本以上＋コース外動画",
@@ -87,9 +87,9 @@ export default function PlanLimitModal({ memberId, onClose }: Props) {
               </li>
             ))}
           </ul>
-          <p className="mt-4 rounded-[12px] border border-[#2f2a45] bg-[#0e0c18] px-4 py-3 text-sm leading-6 text-[#8b84a8]">
+          <p className="mt-4 rounded-[12px] border border-[#2f2a45] bg-[#0e0c18] px-4 py-3 text-xs leading-6 text-[#8b84a8]">
             動画で学び、AIで時間かけずに日記を作る。<br />
-            基礎があるから&ldquo;楽しても指名が取れる人&rdquo;になれます。<br />
+            基礎があるから&ldquo;楽しても指名が取れる人&rdquo;になれる。<br />
             指名1本＝数万円、月9,800円は投資です。
           </p>
         </div>
