@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="NBS（Narijo Business School）ご購入ありがとうございます。ご利用開始のため、購入完了フォームのご入力をお願いします。">
+  <title>ご購入ありがとうございます｜NBS — Narijo Business School</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=Cormorant+Garamond:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-main:#0a0d17; --bg-2:#111827; --bg-3:#1a1a2e;
+      --card-bg:rgba(255,255,255,0.05);
+      --accent:#E47911; --accent-2:#045184; --line-green:#06C755;
+      --text-white:#FFFFFF; --text-sub:rgba(255,255,255,0.6); --gold:#B39855;
+      --radius-card:16px;
+      --font-handw:'Kaisei Decol','Noto Serif JP',serif;
+      --font-serif:'Noto Serif JP',serif;
+      --font-sans:'Noto Sans JP',sans-serif;
+      --font-eng:'Cormorant Garamond',serif;
+      --max-w:620px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: radial-gradient(ellipse at 30% 20%, rgba(4,81,132,0.25) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 80%, rgba(228,121,17,0.12) 0%, transparent 50%),
+                  linear-gradient(160deg, #0a0d17 0%, #111827 100%);
+      color: var(--text-white);
+      font-family: var(--font-sans);
+      font-weight: 400; line-height: 1.8; min-height: 100vh;
+      display: flex; flex-direction: column; overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .container { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; width: 100%; }
+
+    .fade-in { opacity: 0; transform: translateY(28px); animation: fadeUp 0.7s ease forwards; }
+    .fade-in-delay-1 { animation-delay: 0.1s; }
+    .fade-in-delay-2 { animation-delay: 0.2s; }
+    .fade-in-delay-3 { animation-delay: 0.3s; }
+    .fade-in-delay-4 { animation-delay: 0.4s; }
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+    .glass-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .main { flex: 1; padding: 72px 0 64px; }
+
+    .thanks-head { text-align: center; margin-bottom: 40px; }
+
+    .check-mark {
+      width: 68px; height: 68px; border-radius: 50%;
+      background: rgba(228,121,17,0.12);
+      border: 1px solid rgba(228,121,17,0.4);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 22px; font-size: 1.9rem; color: var(--accent);
+    }
+
+    .thanks-badge {
+      display: inline-block;
+      background: rgba(228,121,17,0.15);
+      border: 1px solid rgba(228,121,17,0.4);
+      color: var(--accent);
+      font-size: 0.74rem; font-weight: 500; letter-spacing: 0.1em;
+      padding: 6px 18px; border-radius: 50px; margin-bottom: 22px;
+    }
+
+    .thanks-title {
+      font-family: var(--font-handw);
+      font-size: clamp(1.55rem, 6vw, 2.2rem);
+      font-weight: 700; line-height: 1.45; margin-bottom: 14px;
+    }
+
+    .thanks-lead {
+      font-size: clamp(0.86rem, 2.5vw, 0.96rem);
+      color: var(--text-sub); letter-spacing: 0.02em;
+    }
+
+    .steps { display: flex; align-items: stretch; justify-content: center; gap: 8px; margin-bottom: 36px; }
+
+    .step { flex: 1; text-align: center; padding: 14px 6px; }
+
+    .step-num {
+      font-family: var(--font-eng); font-size: 1.05rem;
+      width: 30px; height: 30px; line-height: 28px; border-radius: 50%;
+      margin: 0 auto 8px; border: 1px solid rgba(255,255,255,0.18); color: var(--text-sub);
+    }
+
+    .step.done .step-num {
+      background: rgba(228,121,17,0.15);
+      border-color: rgba(228,121,17,0.45); color: var(--accent);
+    }
+
+    .step.current .step-num {
+      background: linear-gradient(135deg, #E47911, #FF9B2E);
+      border-color: transparent; color: #fff;
+      box-shadow: 0 0 18px rgba(228,121,17,0.4);
+    }
+
+    .step-label { font-size: 0.72rem; color: var(--text-sub); line-height: 1.5; }
+    .step.current .step-label { color: var(--text-white); }
+    .step-arrow { align-self: center; color: rgba(228,121,17,0.5); font-size: 1rem; }
+
+    .form-card { padding: 32px 28px; }
+
+    .form-intro {
+      font-size: 0.88rem; color: var(--text-sub); line-height: 1.85;
+      margin-bottom: 26px; padding-bottom: 22px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .form-intro strong { color: var(--accent); font-weight: 500; }
+
+    .field { margin-bottom: 22px; }
+
+    .field-label {
+      display: block; font-size: 0.85rem; font-weight: 500;
+      margin-bottom: 4px; color: var(--text-white);
+    }
+
+    .field-req {
+      font-size: 0.66rem; color: var(--accent);
+      border: 1px solid rgba(228,121,17,0.4); border-radius: 4px;
+      padding: 1px 6px; margin-left: 8px; vertical-align: 1px;
+    }
+
+    .field-hint {
+      font-size: 0.74rem; color: var(--text-sub);
+      margin-bottom: 10px; line-height: 1.6;
+    }
+
+    .input {
+      width: 100%; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+      color: var(--text-white); font-family: var(--font-sans);
+      font-size: 0.92rem; padding: 13px 15px;
+      transition: border-color 0.25s, background 0.25s;
+    }
+    .input::placeholder { color: rgba(255,255,255,0.28); }
+    .input:focus {
+      outline: none; border-color: rgba(228,121,17,0.6);
+      background: rgba(255,255,255,0.06);
+    }
+    .input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .svc-group {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px; padding: 18px 16px 16px; margin-bottom: 16px;
+    }
+
+    .svc-name {
+      font-family: var(--font-serif); font-size: 0.95rem; font-weight: 500;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+
+    .svc-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+    .svc-check {
+      display: flex; align-items: center; gap: 8px; margin-top: 10px;
+      font-size: 0.8rem; color: var(--text-sub); cursor: pointer; user-select: none;
+    }
+    .svc-check input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+    .btn-submit {
+      display: block; width: 100%; text-align: center;
+      background: linear-gradient(135deg, #E47911, #FF9B2E);
+      color: #fff; font-family: var(--font-sans);
+      font-size: 1rem; font-weight: 500; padding: 16px 24px;
+      border-radius: 50px; border: none; cursor: pointer; margin-top: 8px;
+      transition: box-shadow 0.3s, transform 0.2s;
+    }
+    .btn-submit:hover {
+      box-shadow: 0 0 28px rgba(228,121,17,0.4); transform: translateY(-2px);
+    }
+    .btn-submit:disabled {
+      opacity: 0.55; cursor: not-allowed; box-shadow: none; transform: none;
+    }
+
+    .form-error {
+      display: none; font-size: 0.8rem; color: #FF6B6B;
+      margin-top: 12px; text-align: center;
+    }
+
+    .form-note {
+      font-size: 0.74rem; color: rgba(255,255,255,0.35);
+      text-align: center; margin-top: 14px; line-height: 1.7;
+    }
+
+    .form-success { display: none; text-align: center; padding: 12px 0 8px; }
+    .form-success .check-mark { margin-bottom: 18px; }
+    .form-success h2 {
+      font-family: var(--font-handw); font-size: 1.3rem;
+      font-weight: 700; margin-bottom: 12px;
+    }
+    .form-success p { font-size: 0.86rem; color: var(--text-sub); line-height: 1.85; }
+
+    .info-box { margin-top: 20px; padding: 20px 22px; }
+
+    .info-box-label {
+      font-family: var(--font-eng); font-size: 0.7rem;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 12px;
+    }
+
+    .info-box ul { list-style: none; }
+    .info-box li {
+      font-size: 0.8rem; color: var(--text-sub); padding: 5px 0;
+      display: flex; align-items: baseline; gap: 10px; line-height: 1.7;
+    }
+    .info-box li::before { content: '—'; color: rgba(228,121,17,0.5); flex-shrink: 0; }
+    .info-box li strong { color: var(--text-white); font-weight: 500; }
+
+    .footer { background: #060810; padding: 30px 0; text-align: center; }
+    .footer-brand { font-family: var(--font-handw); font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .footer-copy { font-size: 0.7rem; color: rgba(255,255,255,0.25); }
+
+    @media (max-width: 480px) {
+      .form-card { padding: 28px 18px; }
+      .step-label { font-size: 0.66rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="main">
+    <div class="container">
+
+      <div class="thanks-head">
+        <div class="check-mark fade-in">✓</div>
+        <div class="fade-in fade-in-delay-1">
+          <span class="thanks-badge">ご購入完了</span>
+        </div>
+        <h1 class="thanks-title fade-in fade-in-delay-1">
+          ご購入<br>ありがとうございます。
+        </h1>
+        <p class="thanks-lead fade-in fade-in-delay-2">
+          ご利用開始の手続きのため、<br>
+          下記フォームのご入力をお願いします。
+        </p>
+      </div>
+
+      <div class="steps fade-in fade-in-delay-2">
+        <div class="step done">
+          <div class="step-num">1</div>
+          <div class="step-label">購入完了</div>
+        </div>
+        <div class="step-arrow">›</div>
+        <div class="step current">
+          <div class="step-num">2</div>
+          <div class="step-label">フォーム入力</div>
+        </div>
+        <div class="step-arrow">›</div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-label">利用開始</div>
+        </div>
+      </div>
+
+      <div class="form-card glass-card fade-in fade-in-delay-3">
+
+        <form id="purchaseForm" novalidate>
+          <input type="checkbox" name="botcheck" id="botcheck" style="display:none;" tabindex="-1" autocomplete="off">
+
+          <p class="form-intro">
+            決済情報と、各サービスにご登録のメールアドレスを照合します。<br>
+            <strong>決済時と登録時のアドレスが違っていても大丈夫です。</strong>
+          </p>
+
+          <div class="field">
+            <label class="field-label" for="payerName">決済者名<span class="field-req">必須</span></label>
+            <p class="field-hint">決済時にご入力いただいたお名前</p>
+            <input type="text" id="payerName" class="input" placeholder="例：成城 花子" autocomplete="name">
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="payerEmail">決済時メールアドレス<span class="field-req">必須</span></label>
+            <p class="field-hint">決済画面でご入力いただいたアドレス</p>
+            <input type="email" id="payerEmail" class="input" placeholder="例：payment@example.com" autocomplete="email">
+          </div>
+
+          <div class="field">
+            <label class="field-label">ご登録サービスのメールアドレス</label>
+            <p class="field-hint">ご利用中のサービスに登録しているアドレスをご入力ください。まだ登録していない場合は「未登録」にチェック。</p>
+
+            <div class="svc-group">
+              <div class="svc-name"><span class="svc-dot"></span>NarijoBusinessSchool</div>
+              <input type="email" id="nbsEmail" class="input" placeholder="登録メールアドレス" autocomplete="off">
+              <label class="svc-check">
+                <input type="checkbox" id="nbsNone" data-target="nbsEmail">
+                このサービスには未登録です
+              </label>
+            </div>
+
+            <div class="svc-group">
+              <div class="svc-name"><span class="svc-dot"></span>シャメコーチ</div>
+              <input type="email" id="scEmail" class="input" placeholder="登録メールアドレス" autocomplete="off">
+              <label class="svc-check">
+                <input type="checkbox" id="scNone" data-target="scEmail">
+                このサービスには未登録です
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-submit" id="submitBtn">送信する</button>
+          <p class="form-error" id="formError">未入力の項目があります。ご確認ください。</p>
+          <p class="form-note">
+            「送信する」を押すと、入力内容がそのまま運営に届きます。<br>
+            このページを閉じる前にご送信ください。
+          </p>
+        </form>
+
+        <div class="form-success" id="formSuccess">
+          <div class="check-mark">✓</div>
+          <h2>送信が完了しました</h2>
+          <p>
+            ご入力ありがとうございます。<br>
+            担当者が照合後、順次ご案内いたします。
+          </p>
+        </div>
+
+      </div>
+
+      <div class="info-box glass-card fade-in fade-in-delay-4">
+        <div class="info-box-label">ご案内</div>
+        <ul>
+          <li>送信後、担当者の<strong>照合・確認後に順次ご案内</strong>いたします（営業時間内に返信）</li>
+          <li>カードのご利用明細には<strong>「NBS」</strong>と表示されます</li>
+          <li>送信できない場合は <strong>narijo.businessschool@gmail.com</strong> まで直接ご連絡ください</li>
+        </ul>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-brand">Narijo Business School</div>
+    <p class="footer-copy">© 2025 Narijo Business School</p>
+  </footer>
+
+  <script>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+  </script>
+
+</body>
+</html>
