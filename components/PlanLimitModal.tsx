@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { gaUpgradePromptView, gaUpgradeClick } from "@/lib/ga";
 
+// 銀行振替（月額パンダ）
 const PAYMENT_URL = process.env.NEXT_PUBLIC_PAYMENT_URL ?? "https://getsugaku-panda.jp/subscription/apply/16527";
+// クレジットカード（Stripe）
+const STRIPE_PAYMENT_URL = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_URL ?? "https://buy.stripe.com/7sY6oHa8naHZ2jp38ve3e07";
 
 type ScoreHistory = {
   bodyScore: number;
@@ -97,13 +100,22 @@ export default function PlanLimitModal({ memberId, onClose }: Props) {
         {/* ボタン */}
         <div className="mt-6 space-y-3">
           <a
+            href={STRIPE_PAYMENT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => gaUpgradeClick("plan_limit_modal_credit")}
+            className="flex items-center justify-center gap-2 rounded-2xl bg-[#e85d8a] py-4 text-sm font-bold text-white transition hover:bg-[#d4507c] active:scale-[0.98]"
+          >
+            クレジットカードで入会 →
+          </a>
+          <a
             href={PAYMENT_URL}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => gaUpgradeClick("plan_limit_modal")}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-[#e85d8a] py-4 text-sm font-bold text-white transition hover:bg-[#d4507c] active:scale-[0.98]"
+            onClick={() => gaUpgradeClick("plan_limit_modal_bank")}
+            className="flex items-center justify-center gap-2 rounded-2xl border border-[#2f2a45] bg-[#0e0c18] py-4 text-sm font-bold text-[#c8c2dc] transition hover:border-[#e85d8a] hover:text-[#e85d8a] active:scale-[0.98]"
           >
-            今すぐ入会する →
+            銀行振替で入会 →
           </a>
           <button
             type="button"
