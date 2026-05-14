@@ -17,15 +17,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // 購入者向け限定ページ（public/nbs-thanks.html）を拡張子なしURLで配信
-  async rewrites() {
-    return [
-      {
-        source: "/nbs-thanks",
-        destination: "/nbs-thanks.html",
-      },
-    ];
-  },
 };
 
 export default nextConfig;
