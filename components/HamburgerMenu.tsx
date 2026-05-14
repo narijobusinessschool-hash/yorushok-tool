@@ -153,7 +153,7 @@ export default function HamburgerMenu() {
             /* 一般会員メニュー */
             <div className="py-1">
               <a
-                href="https://www.narijo.net/"
+                href="https://www.narijo.net/?utm_source=ai_tool&utm_medium=banner&utm_campaign=ai_to_hp"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setOpen(false)}
